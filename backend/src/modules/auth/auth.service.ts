@@ -130,6 +130,16 @@ export class AuthService {
     }
   }
 
+  async getCurrentUser(userId: string) {
+    const user = await authRepository.findUserById(userId);
+
+    if (!user) {
+      throw new AppError("User not found", HTTP_STATUS.UNAUTHORIZED);
+    }
+
+    return user;
+  }
+
 }
 
 export const authService = new AuthService();

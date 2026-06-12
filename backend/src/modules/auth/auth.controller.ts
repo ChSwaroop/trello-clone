@@ -42,6 +42,24 @@ export class AuthController {
     clearAuthCookies(res);
     sendSuccess(res, { loggedOut: true });
   });
+
+  me = asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) {
+      res.status(401).json({ success: false, message: "Authentication required" });
+      return;
+    }
+
+    const user = await authService.getCurrentUser(req.user.id);
+
+    sendSuccess(res, {
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        avatarUrl: user.avatarUrl ?? undefined,
+      },
+    });
+  });
 }
 
 export const authController = new AuthController();
