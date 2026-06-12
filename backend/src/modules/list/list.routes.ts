@@ -26,5 +26,15 @@ listRoutes.delete(
   validateRequest({ params: listIdParamSchema }),
   listController.deleteList,
 );
+listRoutes.patch(
+  "/:listId/archive",
+  validateRequest({ params: listIdParamSchema }),
+  listController.archiveList,
+);
+listRoutes.patch(
+  "/:listId/restore",
+  validateRequest({ params: listIdParamSchema }),
+  listController.restoreList,
+);
 
 export default listRoutes;

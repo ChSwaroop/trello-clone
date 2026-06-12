@@ -36,6 +36,10 @@ export class CardRepository {
     return prisma.card.delete({ where: { id: cardId } });
   }
 
+  async findAttachment(attachmentId: string) {
+    return prisma.attachment.findUnique({ where: { id: attachmentId } });
+  }
+
   async findActiveCardsInList(listId: string) {
     return prisma.card.findMany({
       where: { listId, status: "ACTIVE" },

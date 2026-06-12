@@ -14,6 +14,7 @@ import {
 import { authRepository } from "./auth.repository.js";
 import type { LoginResult, RefreshResult } from "./auth.types.js";
 import type { LoginInput } from "./auth.validator.js";
+import { workspaceService } from "../workspace/workspace.service.js";
 
 export class AuthService {
   async login(input: LoginInput): Promise<LoginResult> {
@@ -50,6 +51,8 @@ export class AuthService {
       await hashToken(refreshToken),
       expiresAt,
     );
+
+    await workspaceService.ensurePersonalWorkspace(user.id, user.name);
 
     return {
       user: {

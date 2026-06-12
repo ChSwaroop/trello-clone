@@ -13,14 +13,19 @@ Frontend integration guide for the REST API. All endpoints below reflect the **c
 5. [Shared Types](#shared-types)
 6. [Health Check](#health-check)
 7. [Auth Endpoints](#auth-endpoints)
-8. [Board Endpoints](#board-endpoints)
-9. [List Endpoints](#list-endpoints)
-10. [Card Endpoints](#card-endpoints)
-11. [Label Endpoints](#label-endpoints)
-12. [Member Endpoints](#member-endpoints)
-13. [Checklist Endpoints](#checklist-endpoints)
-14. [Checklist Item Endpoints](#checklist-item-endpoints)
-15. [Frontend Integration Notes](#frontend-integration-notes)
+8. [Workspace Endpoints](#workspace-endpoints)
+9. [Board Endpoints](#board-endpoints)
+10. [Board Member Endpoints](#board-member-endpoints)
+11. [Board Star Endpoints](#board-star-endpoints)
+12. [List Endpoints](#list-endpoints)
+13. [Card Endpoints](#card-endpoints)
+14. [Comment Endpoints](#comment-endpoints)
+15. [Attachment Endpoints](#attachment-endpoints)
+16. [Label Endpoints](#label-endpoints)
+17. [Member Endpoints](#member-endpoints)
+18. [Checklist Endpoints](#checklist-endpoints)
+19. [Checklist Item Endpoints](#checklist-item-endpoints)
+20. [Frontend Integration Notes](#frontend-integration-notes)
 
 ---
 
@@ -146,7 +151,14 @@ There is **no** `errors` array or error code field in the current implementation
 | `Invalid or expired refresh token` | 401 | Refresh token JWT invalid |
 | `Invalid refresh token` | 401 | Refresh token not found or hash mismatch |
 | `Refresh token expired` | 401 | Refresh token past expiry |
-| `You do not have access to this board` | 403 | User is not the board owner |
+| `You do not have access to this board` | 403 | User lacks board membership / visibility |
+| `You do not have access to this workspace` | 403 | User is not a workspace member |
+| `You do not have permission to manage this workspace` | 403 | Non-admin workspace action |
+| `User must be a board member to be assigned to a card` | 400 | Card assignee not on board |
+| `User is not a member of this workspace` | 400 | Board member invite outside workspace |
+| `Workspace not found` | 404 | Workspace ID does not exist |
+| `Comment not found` | 404 | Comment ID does not exist |
+| `Attachment not found` | 404 | Attachment ID does not exist |
 | `Board not found` | 404 | Board ID does not exist |
 | `List not found` | 404 | List ID does not exist |
 | `Card not found` | 404 | Card ID does not exist |
@@ -187,13 +199,47 @@ Request body, params, and query are validated with Zod. Multiple issues are join
 | `email` | `string` | Yes | |
 | `avatarUrl` | `string` | No | Omitted when `null` |
 
+### `Workspace`
+
+| Field | Type | Required in response | Notes |
+|---|---|---|---|
+| `id` | `string` (UUID) | Yes | |
+| `name` | `string` | Yes | |
+| `slug` | `string` | Yes | URL-safe unique identifier |
+| `createdAt` | `string` (ISO 8601) | Yes | |
+| `updatedAt` | `string` (ISO 8601) | Yes | |
+
+### `WorkspaceMember`
+
+| Field | Type | Required in response | Notes |
+|---|---|---|---|
+| `userId` | `string` (UUID) | Yes | |
+| `role` | `"OWNER" \| "ADMIN" \| "MEMBER"` | Yes | |
+| `joinedAt` | `string` (ISO 8601) | Yes | |
+| `user` | `User` | Yes | Nested user object |
+
+### `BoardMember`
+
+| Field | Type | Required in response | Notes |
+|---|---|---|---|
+| `userId` | `string` (UUID) | Yes | |
+| `role` | `"ADMIN" \| "MEMBER" \| "OBSERVER"` | Yes | |
+| `joinedAt` | `string` (ISO 8601) | Yes | |
+| `user` | `User` | Yes | Nested user object |
+
 ### `Board`
 
 | Field | Type | Required in response | Notes |
 |---|---|---|---|
 | `id` | `string` (UUID) | Yes | |
 | `title` | `string` | Yes | |
-| `ownerId` | `string` (UUID) | Yes | Present on list/create responses; omitted in board details nested `board` object |
+| `ownerId` | `string` (UUID) | Yes | |
+| `workspaceId` | `string` (UUID) | Yes | |
+| `visibility` | `"PRIVATE" \| "WORKSPACE" \| "PUBLIC"` | Yes | Default `WORKSPACE` |
+| `isClosed` | `boolean` | Yes | Default `false` |
+| `isStarred` | `boolean` | No | Present on list responses when applicable |
+| `backgroundColor` | `string` | No | Hex color |
+| `backgroundImageUrl` | `string` | No | Image URL |
 | `createdAt` | `string` (ISO 8601) | Yes | |
 | `updatedAt` | `string` (ISO 8601) | Yes | |
 
@@ -205,6 +251,8 @@ Request body, params, and query are validated with Zod. Multiple issues are join
 | `boardId` | `string` (UUID) | Yes | |
 | `title` | `string` | Yes | |
 | `position` | `number` (integer, ≥ 0) | Yes | 1-based ordering within board |
+| `status` | `"ACTIVE" \| "ARCHIVED"` | Yes | Default `ACTIVE` |
+| `archivedAt` | `string` (ISO 8601) | No | Set when archived |
 | `createdAt` | `string` (ISO 8601) | Yes | |
 | `updatedAt` | `string` (ISO 8601) | Yes | |
 
@@ -216,7 +264,11 @@ Request body, params, and query are validated with Zod. Multiple issues are join
 | `listId` | `string` (UUID) | Yes | |
 | `title` | `string` | Yes | |
 | `description` | `string` | No | Omitted when `null` |
+| `startDate` | `string` (ISO 8601) | No | Omitted when `null` |
 | `dueDate` | `string` (ISO 8601) | No | Omitted when `null` |
+| `dueComplete` | `boolean` | Yes | Default `false` |
+| `coverColor` | `string` | No | Hex color |
+| `coverAttachmentId` | `string` (UUID) | No | References an attachment on this card |
 | `position` | `number` (integer) | Yes | 1-based ordering within list |
 | `status` | `"ACTIVE" \| "ARCHIVED"` | Yes | |
 | `createdAt` | `string` (ISO 8601) | Yes | |
@@ -230,6 +282,8 @@ Request body, params, and query are validated with Zod. Multiple issues are join
 | `boardId` | `string` (UUID) | Yes | |
 | `name` | `string` | Yes | |
 | `color` | `string` | Yes | Hex color, e.g. `"#61bd4f"` |
+| `createdAt` | `string` (ISO 8601) | Yes | |
+| `updatedAt` | `string` (ISO 8601) | Yes | |
 
 Suggested palette (from backend constants): `#61bd4f`, `#f2d600`, `#ff9f1a`, `#eb5a46`, `#c377e0`, `#0079bf`, `#00c2e0`, `#51e898`
 
@@ -251,6 +305,32 @@ Suggested palette (from backend constants): `#61bd4f`, `#f2d600`, `#ff9f1a`, `#e
 | `title` | `string` | Yes | |
 | `isCompleted` | `boolean` | Yes | Default `false` |
 | `position` | `number` (integer) | Yes | 1-based ordering within checklist |
+| `dueDate` | `string` (ISO 8601) | No | Omitted when `null` |
+| `assignedTo` | `User` | No | Nested assignee |
+| `createdAt` | `string` (ISO 8601) | Yes | |
+
+### `Comment`
+
+| Field | Type | Required in response | Notes |
+|---|---|---|---|
+| `id` | `string` (UUID) | Yes | |
+| `cardId` | `string` (UUID) | Yes | |
+| `content` | `string` | Yes | |
+| `user` | `User` | Yes | Author |
+| `createdAt` | `string` (ISO 8601) | Yes | |
+| `updatedAt` | `string` (ISO 8601) | Yes | |
+
+### `Attachment`
+
+| Field | Type | Required in response | Notes |
+|---|---|---|---|
+| `id` | `string` (UUID) | Yes | |
+| `cardId` | `string` (UUID) | Yes | |
+| `kind` | `"FILE" \| "LINK"` | Yes | |
+| `url` | `string` | Yes | Public URL or link |
+| `filename` | `string` | No | |
+| `mimeType` | `string` | No | |
+| `sizeBytes` | `number` | No | |
 | `createdAt` | `string` (ISO 8601) | Yes | |
 
 ### `CardLabel` (assign label response)
@@ -305,7 +385,7 @@ Authenticate and set auth cookies.
 
 **Success `200 OK`**
 
-Sets `accessToken` and `refreshToken` cookies.
+Sets `accessToken` and `refreshToken` cookies. Also ensures the user has a personal workspace (auto-created on first login if none exists).
 
 ```json
 {
@@ -395,9 +475,106 @@ Clears `accessToken` and `refreshToken` cookies.
 
 ---
 
+## Workspace Endpoints
+
+All workspace endpoints require authentication.
+
+### Access control
+
+| Action | Required role |
+|---|---|
+| View workspace | Any workspace member |
+| Rename workspace | `OWNER` or `ADMIN` |
+| Delete workspace | `OWNER` only |
+| Add/remove members | `OWNER` or `ADMIN` |
+
+### `POST /api/v1/workspaces`
+
+Create a workspace. Creator becomes `OWNER`.
+
+**Request body**
+
+| Field | Type | Required | Constraints |
+|---|---|---|---|
+| `name` | `string` | **Yes** | 1–255 characters |
+| `slug` | `string` | **Yes** | Lowercase alphanumeric + hyphens |
+
+```json
+{
+  "name": "Acme Corp",
+  "slug": "acme-corp"
+}
+```
+
+**Success `201 Created`** — returns `Workspace`.
+
+---
+
+### `GET /api/v1/workspaces`
+
+List workspaces the authenticated user belongs to.
+
+**Success `200 OK`** — array of `Workspace` objects.
+
+---
+
+### `GET /api/v1/workspaces/:workspaceId`
+
+Get workspace details including members and visible boards.
+
+**Success `200 OK`**
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "...",
+    "name": "Personal",
+    "slug": "personal",
+    "members": [ { "userId": "...", "role": "OWNER", "user": { } } ],
+    "boards": [ { "id": "...", "title": "...", "workspaceId": "..." } ]
+  }
+}
+```
+
+---
+
+### `PATCH /api/v1/workspaces/:workspaceId`
+
+Rename a workspace.
+
+**Request body:** `{ "name": "New Name" }`
+
+---
+
+### `DELETE /api/v1/workspaces/:workspaceId`
+
+Delete a workspace and cascade all boards. **OWNER only.**
+
+---
+
+### `POST /api/v1/workspaces/:workspaceId/members`
+
+Add a user to the workspace.
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `userId` | `string` (UUID) | **Yes** |
+| `role` | `"ADMIN" \| "MEMBER"` | No (default `MEMBER`) |
+
+---
+
+### `DELETE /api/v1/workspaces/:workspaceId/members/:userId`
+
+Remove a user from the workspace. Cannot remove the last `OWNER`.
+
+---
+
 ## Board Endpoints
 
-All board endpoints require authentication. Access is restricted to the **board owner** only.
+All board endpoints require authentication. Access is determined by board ownership, board membership role, workspace membership (for `WORKSPACE` visibility), or public visibility.
 
 ### `POST /api/v1/boards`
 
@@ -408,10 +585,15 @@ Create a new board.
 | Field | Type | Required | Constraints |
 |---|---|---|---|
 | `title` | `string` | **Yes** | 1–255 characters |
+| `workspaceId` | `string` | **Yes** | Valid UUID — user must be a workspace member |
+| `visibility` | `"PRIVATE" \| "WORKSPACE" \| "PUBLIC"` | No | Default `WORKSPACE` |
+| `backgroundColor` | `string \| null` | No | Hex color |
+| `backgroundImageUrl` | `string \| null` | No | Valid URL |
 
 ```json
 {
-  "title": "Product Roadmap"
+  "title": "Product Roadmap",
+  "workspaceId": "550e8400-e29b-41d4-a716-446655440000"
 }
 ```
 
@@ -441,7 +623,9 @@ Create a new board.
 
 ### `GET /api/v1/boards`
 
-List all boards owned by the authenticated user.
+List all boards the authenticated user can access (owned, member of, or visible via workspace/public visibility). Closed boards are excluded.
+
+Each board includes `isStarred` when applicable.
 
 **Request body:** None
 
@@ -565,7 +749,8 @@ Get full board details including lists, cards, labels, members, and checklists.
 **Behavior notes**
 
 - Lists are ordered by `position` ascending.
-- Only **ACTIVE** cards are included (archived cards are excluded).
+- Only **ACTIVE** lists and cards are included (archived lists/cards excluded).
+- Board details include `members` (board-level), card `comments`, `attachments`, and `coverAttachment`.
 - Cards within each list are ordered by `position` ascending.
 - Checklist items are ordered by `position` ascending.
 
@@ -577,6 +762,95 @@ Get full board details including lists, cards, labels, members, and checklists.
 | 401 | `Authentication required` |
 | 403 | `You do not have access to this board` |
 | 404 | `Board not found` |
+
+---
+
+### `PATCH /api/v1/boards/:boardId`
+
+Update board settings. Requires board `ADMIN` role (or owner).
+
+**Request body** — at least one field required
+
+| Field | Type | Required |
+|---|---|---|
+| `title` | `string` | No |
+| `visibility` | `"PRIVATE" \| "WORKSPACE" \| "PUBLIC"` | No |
+| `backgroundColor` | `string \| null` | No |
+| `backgroundImageUrl` | `string \| null` | No |
+
+---
+
+### `DELETE /api/v1/boards/:boardId`
+
+Permanently delete a board. **Owner only.**
+
+---
+
+### `PATCH /api/v1/boards/:boardId/close`
+
+Close (archive) a board. Sets `isClosed: true`. Requires `ADMIN`.
+
+---
+
+### `PATCH /api/v1/boards/:boardId/reopen`
+
+Reopen a closed board. Requires `ADMIN`.
+
+---
+
+## Board Member Endpoints
+
+Mounted under `/api/v1/boards/:boardId/members`.
+
+### `GET /api/v1/boards/:boardId/members`
+
+List board members with roles. Requires `OBSERVER` access.
+
+**Success `200 OK`** — array of `BoardMember` objects.
+
+---
+
+### `POST /api/v1/boards/:boardId/members`
+
+Add a workspace member to the board. Requires `ADMIN`.
+
+**Request body:** `{ "userId": "...", "role": "MEMBER" }`
+
+Roles: `ADMIN`, `MEMBER`, `OBSERVER`.
+
+---
+
+### `PATCH /api/v1/boards/:boardId/members/:userId`
+
+Change a board member's role. Requires `ADMIN`. Cannot change owner role.
+
+**Request body:** `{ "role": "OBSERVER" }`
+
+---
+
+### `DELETE /api/v1/boards/:boardId/members/:userId`
+
+Remove a board member. Requires `ADMIN`. Cannot remove owner.
+
+---
+
+## Board Star Endpoints
+
+### `GET /api/v1/boards/starred`
+
+List the authenticated user's starred boards.
+
+---
+
+### `POST /api/v1/boards/:boardId/star`
+
+Star a board (idempotent). Requires `OBSERVER` access.
+
+---
+
+### `DELETE /api/v1/boards/:boardId/star`
+
+Unstar a board.
 
 ---
 
@@ -732,6 +1006,18 @@ Reorder lists within a board.
 
 ---
 
+### `PATCH /api/v1/lists/:listId/archive`
+
+Archive a list (sets `status: "ARCHIVED"`, records `archivedAt`). List is hidden from board details; cards remain.
+
+---
+
+### `PATCH /api/v1/lists/:listId/restore`
+
+Restore an archived list to `ACTIVE`.
+
+---
+
 ## Card Endpoints
 
 ### `POST /api/v1/cards`
@@ -783,7 +1069,11 @@ Update card fields.
 |---|---|---|---|
 | `title` | `string` | No | 1–255 characters |
 | `description` | `string` | No | Max 5000 characters |
+| `startDate` | `string \| null` | No | ISO 8601 datetime; pass `null` to clear |
 | `dueDate` | `string \| null` | No | ISO 8601 datetime; pass `null` to clear |
+| `dueComplete` | `boolean` | No | Mark due date complete |
+| `coverColor` | `string \| null` | No | Hex color |
+| `coverAttachmentId` | `string \| null` | No | UUID of attachment on this card |
 
 ```json
 {
@@ -1035,6 +1325,95 @@ GET /api/v1/cards/filter?boardId=550e8400-e29b-41d4-a716-446655440001&labelId=88
 
 ---
 
+## Comment Endpoints
+
+### `POST /api/v1/cards/:cardId/comments`
+
+Add a comment to a card.
+
+**Request body:** `{ "content": "Looks good!" }`
+
+**Success `201 Created`** — returns `Comment` with nested `user`.
+
+---
+
+### `PATCH /api/v1/comments/:commentId`
+
+Edit a comment. **Author only.**
+
+**Request body:** `{ "content": "Updated text" }`
+
+---
+
+### `DELETE /api/v1/comments/:commentId`
+
+Delete a comment. Author or board `ADMIN`.
+
+---
+
+## Attachment Endpoints
+
+File uploads use **Supabase Storage**. The backend signs upload URLs and stores only the URL/path in the database.
+
+### Upload flow
+
+1. `POST /api/v1/attachments/sign-upload` — get `{ signedUrl, storagePath, expiresAt }`
+2. Client uploads file bytes directly to `signedUrl` (PUT)
+3. `POST /api/v1/cards/:cardId/attachments` — persist attachment row with public URL
+
+For link attachments, skip step 1–2 and POST directly with `kind: "LINK"`.
+
+### `POST /api/v1/attachments/sign-upload`
+
+Get a Supabase signed upload URL.
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `cardId` | `string` (UUID) | **Yes** |
+| `filename` | `string` | **Yes** |
+| `mimeType` | `string` | No |
+| `sizeBytes` | `number` | No |
+
+**Success `200 OK`**
+
+```json
+{
+  "success": true,
+  "data": {
+    "signedUrl": "https://...",
+    "storagePath": "card-id/uuid-filename.png",
+    "expiresAt": "2026-06-12T11:00:00.000Z"
+  }
+}
+```
+
+---
+
+### `POST /api/v1/cards/:cardId/attachments`
+
+Create an attachment record.
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `url` | `string` | **Yes** |
+| `kind` | `"FILE" \| "LINK"` | **Yes** |
+| `storagePath` | `string` | No — required for FILE uploads via Supabase |
+| `filename` | `string` | No |
+| `mimeType` | `string` | No |
+| `sizeBytes` | `number` | No |
+
+---
+
+### `DELETE /api/v1/attachments/:attachmentId`
+
+Delete attachment. Removes Supabase object (if `storagePath` set) and clears any card cover reference.
+
+---
+
 ## Label Endpoints
 
 ### `POST /api/v1/labels`
@@ -1157,9 +1536,19 @@ Remove a label from a card.
 
 ### `GET /api/v1/members`
 
-List all users that can be assigned to cards.
+List users in a workspace who can be assigned to cards.
 
-**Request body:** None
+**Query params**
+
+| Param | Type | Required |
+|---|---|---|
+| `workspaceId` | `string` (UUID) | **Yes** |
+
+```
+GET /api/v1/members?workspaceId=550e8400-e29b-41d4-a716-446655440000
+```
+
+Returns workspace members only. Caller must be a member of the workspace.
 
 **Success `200 OK`**
 
@@ -1350,6 +1739,8 @@ Update a checklist item.
 |---|---|---|---|
 | `title` | `string` | No | 1–255 characters |
 | `isCompleted` | `boolean` | No | `true` or `false` |
+| `assignedToId` | `string \| null` | No | UUID — must be a board member |
+| `dueDate` | `string \| null` | No | ISO 8601 datetime |
 
 ```json
 {
@@ -1439,30 +1830,84 @@ async function api<T>(
 ### Suggested data-loading flow
 
 ```
-Login → GET /boards (dashboard)
+Login → GET /workspaces (pick workspace)
+      → GET /boards (dashboard)
       → GET /boards/:boardId (board view — single request for full state)
       → Mutations update local state or re-fetch board details
 ```
 
-### Endpoints not yet implemented
+### Supabase file upload (attachments)
 
-The database schema includes `Comment` and `Activity` models, but there are **no REST endpoints** for them yet. Do not wire up comment or activity feeds until those routes are added.
+```ts
+// 1. Get signed URL
+const { signedUrl, storagePath } = await api("/attachments/sign-upload", {
+  method: "POST",
+  body: JSON.stringify({ cardId, filename: file.name, mimeType: file.type, sizeBytes: file.size }),
+});
+
+// 2. Upload directly to Supabase
+await fetch(signedUrl, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+
+// 3. Persist attachment row (use public URL from your bucket)
+await api(`/cards/${cardId}/attachments`, {
+  method: "POST",
+  body: JSON.stringify({
+    kind: "FILE",
+    url: publicUrl,
+    storagePath,
+    filename: file.name,
+    mimeType: file.type,
+    sizeBytes: file.size,
+  }),
+});
+```
+
+### Access control summary
+
+| Resource | Read | Write |
+|---|---|---|
+| Board (owner) | Full | Full |
+| Board (ADMIN member) | Full | Full |
+| Board (MEMBER) | Full | Mutations allowed |
+| Board (OBSERVER member) | Full | Read-only |
+| Board (WORKSPACE visibility + workspace member) | Read | Read-only |
+| Board (PUBLIC) | Read (any authenticated user) | Read-only |
 
 ### Quick endpoint index
 
 | Method | Path | Description |
 |---|---|---|
 | `GET` | `/health` | Health check |
-| `POST` | `/api/v1/auth/login` | Login |
+| `POST` | `/api/v1/auth/login` | Login (auto-creates personal workspace) |
 | `POST` | `/api/v1/auth/refresh` | Refresh tokens |
 | `POST` | `/api/v1/auth/logout` | Logout |
+| `POST` | `/api/v1/workspaces` | Create workspace |
+| `GET` | `/api/v1/workspaces` | List workspaces |
+| `GET` | `/api/v1/workspaces/:workspaceId` | Workspace details |
+| `PATCH` | `/api/v1/workspaces/:workspaceId` | Rename workspace |
+| `DELETE` | `/api/v1/workspaces/:workspaceId` | Delete workspace |
+| `POST` | `/api/v1/workspaces/:workspaceId/members` | Add workspace member |
+| `DELETE` | `/api/v1/workspaces/:workspaceId/members/:userId` | Remove workspace member |
 | `POST` | `/api/v1/boards` | Create board |
-| `GET` | `/api/v1/boards` | List boards |
+| `GET` | `/api/v1/boards` | List accessible boards |
+| `GET` | `/api/v1/boards/starred` | List starred boards |
 | `GET` | `/api/v1/boards/:boardId` | Board details |
+| `PATCH` | `/api/v1/boards/:boardId` | Update board |
+| `DELETE` | `/api/v1/boards/:boardId` | Delete board |
+| `PATCH` | `/api/v1/boards/:boardId/close` | Close board |
+| `PATCH` | `/api/v1/boards/:boardId/reopen` | Reopen board |
+| `POST` | `/api/v1/boards/:boardId/star` | Star board |
+| `DELETE` | `/api/v1/boards/:boardId/star` | Unstar board |
+| `GET` | `/api/v1/boards/:boardId/members` | List board members |
+| `POST` | `/api/v1/boards/:boardId/members` | Add board member |
+| `PATCH` | `/api/v1/boards/:boardId/members/:userId` | Update board member role |
+| `DELETE` | `/api/v1/boards/:boardId/members/:userId` | Remove board member |
 | `POST` | `/api/v1/lists` | Create list |
 | `PATCH` | `/api/v1/lists/reorder` | Reorder lists |
 | `PATCH` | `/api/v1/lists/:listId` | Update list |
 | `DELETE` | `/api/v1/lists/:listId` | Delete list |
+| `PATCH` | `/api/v1/lists/:listId/archive` | Archive list |
+| `PATCH` | `/api/v1/lists/:listId/restore` | Restore list |
 | `GET` | `/api/v1/cards/search` | Search cards |
 | `GET` | `/api/v1/cards/filter` | Filter cards |
 | `POST` | `/api/v1/cards` | Create card |
@@ -1470,10 +1915,16 @@ The database schema includes `Comment` and `Activity` models, but there are **no
 | `PATCH` | `/api/v1/cards/:cardId` | Update card |
 | `PATCH` | `/api/v1/cards/:cardId/archive` | Archive card |
 | `DELETE` | `/api/v1/cards/:cardId` | Delete card |
+| `POST` | `/api/v1/cards/:cardId/comments` | Create comment |
+| `PATCH` | `/api/v1/comments/:commentId` | Update comment |
+| `DELETE` | `/api/v1/comments/:commentId` | Delete comment |
+| `POST` | `/api/v1/attachments/sign-upload` | Get Supabase signed upload URL |
+| `POST` | `/api/v1/cards/:cardId/attachments` | Create attachment |
+| `DELETE` | `/api/v1/attachments/:attachmentId` | Delete attachment |
 | `POST` | `/api/v1/labels` | Create label |
 | `POST` | `/api/v1/cards/:cardId/labels` | Assign label |
 | `DELETE` | `/api/v1/cards/:cardId/labels/:labelId` | Remove label |
-| `GET` | `/api/v1/members` | List members |
+| `GET` | `/api/v1/members?workspaceId=` | List workspace members |
 | `POST` | `/api/v1/cards/:cardId/members` | Assign member |
 | `DELETE` | `/api/v1/cards/:cardId/members/:memberId` | Remove member |
 | `POST` | `/api/v1/cards/:cardId/checklists` | Create checklist |

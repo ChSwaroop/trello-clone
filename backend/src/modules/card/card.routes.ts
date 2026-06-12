@@ -1,5 +1,15 @@
 import { Router } from "express";
 import { validateRequest } from "../../middleware/validate-request.js";
+import { attachmentController } from "../attachment/attachment.controller.js";
+import {
+  cardIdParamSchema as attachmentCardParamSchema,
+  createAttachmentSchema,
+} from "../attachment/attachment.validator.js";
+import { commentController } from "../comment/comment.controller.js";
+import {
+  cardIdParamSchema as commentCardParamSchema,
+  createCommentSchema,
+} from "../comment/comment.validator.js";
 import { labelController } from "../label/label.controller.js";
 import { assignLabelSchema, cardLabelParamsSchema } from "../label/label.validator.js";
 import { memberController } from "../member/member.controller.js";
@@ -54,6 +64,16 @@ cardRoutes.post(
   "/:cardId/checklists",
   validateRequest({ params: cardIdParamSchema, body: createChecklistSchema }),
   checklistController.createChecklist,
+);
+cardRoutes.post(
+  "/:cardId/comments",
+  validateRequest({ params: commentCardParamSchema, body: createCommentSchema }),
+  commentController.createComment,
+);
+cardRoutes.post(
+  "/:cardId/attachments",
+  validateRequest({ params: attachmentCardParamSchema, body: createAttachmentSchema }),
+  attachmentController.createAttachment,
 );
 cardRoutes.patch(
   "/:cardId/archive",

@@ -12,6 +12,8 @@ export const createChecklistItemSchema = z.object({
 export const updateChecklistItemSchema = z.object({
   title: z.string().min(1).max(255).optional(),
   isCompleted: z.boolean().optional(),
+  assignedToId: z.uuid().optional().nullable(),
+  dueDate: z.iso.datetime().optional().nullable(),
 });
 
 export const cardIdParamSchema = z.object({

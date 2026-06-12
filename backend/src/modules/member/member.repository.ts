@@ -1,15 +1,20 @@
 import { prisma } from "../../db/prisma.js";
 
 export class MemberRepository {
-  async findAll() {
-    return prisma.user.findMany({
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        avatarUrl: true,
+  async findAllInWorkspace(workspaceId: string) {
+    return prisma.workspaceMember.findMany({
+      where: { workspaceId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatarUrl: true,
+          },
+        },
       },
-      orderBy: { name: "asc" },
+      orderBy: { user: { name: "asc" } },
     });
   }
 

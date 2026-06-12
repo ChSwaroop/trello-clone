@@ -39,6 +39,7 @@ const cardDefinitions = [
 async function main() {
   await prisma.activity.deleteMany();
   await prisma.comment.deleteMany();
+  await prisma.attachment.deleteMany();
   await prisma.checklistItem.deleteMany();
   await prisma.checklist.deleteMany();
   await prisma.cardLabel.deleteMany();
@@ -46,7 +47,11 @@ async function main() {
   await prisma.card.deleteMany();
   await prisma.list.deleteMany();
   await prisma.label.deleteMany();
+  await prisma.boardStar.deleteMany();
+  await prisma.boardMember.deleteMany();
   await prisma.board.deleteMany();
+  await prisma.workspaceMember.deleteMany();
+  await prisma.workspace.deleteMany();
   await prisma.refreshToken.deleteMany();
   await prisma.user.deleteMany();
 
@@ -64,10 +69,40 @@ async function main() {
 
   const owner = createdUsers[0]!;
 
+  const workspace = await prisma.workspace.create({
+    data: {
+      name: "Personal",
+      slug: "personal",
+      members: {
+        create: [
+          { userId: owner.id, role: "OWNER" },
+          { userId: createdUsers[1]!.id, role: "MEMBER" },
+          { userId: createdUsers[2]!.id, role: "MEMBER" },
+        ],
+      },
+    },
+  });
+
   const board = await prisma.board.create({
     data: {
       title: "Personal Project",
       ownerId: owner.id,
+      workspaceId: workspace.id,
+      visibility: "WORKSPACE",
+      backgroundColor: "#0079bf",
+      members: {
+        create: [
+          { userId: owner.id, role: "ADMIN" },
+          { userId: createdUsers[1]!.id, role: "MEMBER" },
+        ],
+      },
+    },
+  });
+
+  await prisma.boardStar.create({
+    data: {
+      userId: owner.id,
+      boardId: board.id,
     },
   });
 
@@ -103,6 +138,8 @@ async function main() {
           title: card.title,
           position: index + 1,
           description: `Sample card: ${card.title}`,
+          startDate: new Date(),
+          dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         },
       }),
     ),
@@ -143,6 +180,7 @@ async function main() {
         title: "Create route",
         position: 1,
         isCompleted: true,
+        assignedToId: createdUsers[1]!.id,
       },
       {
         checklistId: checklist.id,
@@ -159,17 +197,52 @@ async function main() {
     ],
   });
 
-  await prisma.activity.create({
+  const attachment = await prisma.attachment.create({
     data: {
-      boardId: board.id,
-      userId: owner.id,
-      type: "BOARD_CREATED",
-      message: `Board "${board.title}" was seeded`,
+      cardId: cards[0]!.id,
+      kind: "LINK",
+      url: "https://example.com/spec.pdf",
+      filename: "spec.pdf",
+      uploadedById: owner.id,
     },
   });
 
+  await prisma.comment.create({
+    data: {
+      cardId: cards[1]!.id,
+      userId: owner.id,
+      content: "Let's ship this by end of week!",
+    },
+  });
+
+  await prisma.activity.createMany({
+    data: [
+      {
+        boardId: board.id,
+        userId: owner.id,
+        type: "WORKSPACE_CREATED",
+        message: `Workspace "${workspace.name}" was seeded`,
+        metadata: { workspaceId: workspace.id },
+      },
+      {
+        boardId: board.id,
+        userId: owner.id,
+        type: "BOARD_CREATED",
+        message: `Board "${board.title}" was seeded`,
+      },
+      {
+        boardId: board.id,
+        cardId: cards[0]!.id,
+        userId: owner.id,
+        type: "ATTACHMENT_ADDED",
+        message: `Attachment added to "${cards[0]!.title}"`,
+        metadata: { attachmentId: attachment.id },
+      },
+    ],
+  });
+
   console.log("Database seeded successfully");
-  console.log("Login with swaroop@example.com / password123");
+  console.log("Login with swaroopch1234@gmail.com / password123");
 }
 
 main()

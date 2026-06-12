@@ -4,13 +4,20 @@ import { toMemberResponse } from "../../shared/utils/serializers.js";
 import { activityService } from "../activity/activity.service.js";
 import { boardService } from "../board/board.service.js";
 import { cardRepository } from "../card/card.repository.js";
+import { workspaceRepository } from "../workspace/workspace.repository.js";
 import { memberRepository } from "./member.repository.js";
-import type { AssignMemberInput } from "./member.validator.js";
+import type { AssignMemberInput, GetMembersQuery } from "./member.validator.js";
 
 export class MemberService {
-  async getMembers() {
-    const members = await memberRepository.findAll();
-    return members.map((member) => toMemberResponse(member));
+  async getMembers(query: GetMembersQuery, userId: string) {
+    const membership = await workspaceRepository.findMember(query.workspaceId, userId);
+
+    if (!membership) {
+      throw new AppError("You do not have access to this workspace", HTTP_STATUS.FORBIDDEN);
+    }
+
+    const members = await memberRepository.findAllInWorkspace(query.workspaceId);
+    return members.map((member) => toMemberResponse(member.user));
   }
 
   async assignMemberToCard(cardId: string, input: AssignMemberInput, userId: string) {
@@ -20,7 +27,13 @@ export class MemberService {
       throw new AppError("Card not found", HTTP_STATUS.NOT_FOUND);
     }
 
-    await boardService.assertBoardAccess(card.list.boardId, userId);
+    await boardService.assertBoardAccess(card.list.boardId, userId, "MEMBER");
+
+    const isBoardMember = await boardService.assertBoardMember(card.list.boardId, input.memberId);
+
+    if (!isBoardMember) {
+      throw new AppError("User must be a board member to be assigned to a card", HTTP_STATUS.BAD_REQUEST);
+    }
 
     const member = await memberRepository.findById(input.memberId);
 
@@ -48,7 +61,7 @@ export class MemberService {
       throw new AppError("Card not found", HTTP_STATUS.NOT_FOUND);
     }
 
-    await boardService.assertBoardAccess(card.list.boardId, userId);
+    await boardService.assertBoardAccess(card.list.boardId, userId, "MEMBER");
 
     const member = await memberRepository.findById(memberId);
 

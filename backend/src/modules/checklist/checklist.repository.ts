@@ -24,6 +24,9 @@ export class ChecklistRepository {
     return prisma.checklistItem.findUnique({
       where: { id: itemId },
       include: {
+        assignedTo: {
+          select: { id: true, name: true, email: true, avatarUrl: true },
+        },
         checklist: {
           include: {
             card: { include: { list: true } },
@@ -43,11 +46,21 @@ export class ChecklistRepository {
 
   async updateItem(
     itemId: string,
-    data: { title?: string; isCompleted?: boolean },
+    data: {
+      title?: string;
+      isCompleted?: boolean;
+      assignedToId?: string | null;
+      dueDate?: Date | null;
+    },
   ) {
     return prisma.checklistItem.update({
       where: { id: itemId },
       data,
+      include: {
+        assignedTo: {
+          select: { id: true, name: true, email: true, avatarUrl: true },
+        },
+      },
     });
   }
 

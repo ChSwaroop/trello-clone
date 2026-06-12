@@ -1,4 +1,4 @@
-import type { ActivityType } from "../../generated/prisma/client.js";
+import type { ActivityType, Prisma } from "../../generated/prisma/client.js";
 import { activityRepository } from "./activity.repository.js";
 
 type LogActivityInput = {
@@ -7,6 +7,7 @@ type LogActivityInput = {
   boardId?: string;
   cardId?: string;
   userId?: string;
+  metadata?: Prisma.InputJsonValue;
 };
 
 export class ActivityService {

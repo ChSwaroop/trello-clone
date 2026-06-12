@@ -11,7 +11,7 @@ import type {
 
 export class ListService {
   async createList(input: CreateListInput, userId: string) {
-    await boardService.assertBoardAccess(input.boardId, userId);
+    await boardService.assertBoardAccess(input.boardId, userId, "MEMBER");
 
     const maxPosition = await listRepository.findMaxPosition(input.boardId);
     const list = await listRepository.create(input.boardId, input.title, maxPosition + 1);
@@ -27,7 +27,7 @@ export class ListService {
   }
 
   async updateList(listId: string, input: UpdateListInput, userId: string) {
-    const list = await this.getListWithAccess(listId, userId);
+    const list = await this.getListWithAccess(listId, userId, "MEMBER");
 
     if (!input.title) {
       throw new AppError("No fields to update", HTTP_STATUS.BAD_REQUEST);
@@ -46,7 +46,7 @@ export class ListService {
   }
 
   async deleteList(listId: string, userId: string) {
-    const list = await this.getListWithAccess(listId, userId);
+    const list = await this.getListWithAccess(listId, userId, "MEMBER");
     await listRepository.delete(listId);
 
     await activityService.log({
@@ -57,20 +57,68 @@ export class ListService {
     });
   }
 
-  async reorderLists(input: ReorderListsInput, userId: string) {
-    await boardService.assertBoardAccess(input.boardId, userId);
-    await listRepository.reorder(input.boardId, input.lists);
-    return listRepository.findById(input.lists[0]!.id);
+  async archiveList(listId: string, userId: string) {
+    const list = await this.getListWithAccess(listId, userId, "MEMBER");
+
+    if (list.status === "ARCHIVED") {
+      throw new AppError("List is already archived", HTTP_STATUS.BAD_REQUEST);
+    }
+
+    const archived = await listRepository.archive(listId);
+
+    await activityService.log({
+      type: "LIST_ARCHIVED",
+      message: `List "${archived.title}" was archived`,
+      boardId: list.boardId,
+      userId,
+    });
+
+    return archived;
   }
 
-  private async getListWithAccess(listId: string, userId: string) {
+  async restoreList(listId: string, userId: string) {
     const list = await listRepository.findById(listId);
 
     if (!list) {
       throw new AppError("List not found", HTTP_STATUS.NOT_FOUND);
     }
 
-    await boardService.assertBoardAccess(list.boardId, userId);
+    await boardService.assertBoardAccess(list.boardId, userId, "MEMBER");
+
+    if (list.status === "ACTIVE") {
+      throw new AppError("List is not archived", HTTP_STATUS.BAD_REQUEST);
+    }
+
+    const restored = await listRepository.restore(listId);
+
+    await activityService.log({
+      type: "LIST_RESTORED",
+      message: `List "${restored.title}" was restored`,
+      boardId: list.boardId,
+      userId,
+    });
+
+    return restored;
+  }
+
+  async reorderLists(input: ReorderListsInput, userId: string) {
+    await boardService.assertBoardAccess(input.boardId, userId, "MEMBER");
+    await listRepository.reorder(input.boardId, input.lists);
+    return listRepository.findById(input.lists[0]!.id);
+  }
+
+  private async getListWithAccess(
+    listId: string,
+    userId: string,
+    requiredRole: "MEMBER" | "OBSERVER" = "MEMBER",
+  ) {
+    const list = await listRepository.findById(listId);
+
+    if (!list) {
+      throw new AppError("List not found", HTTP_STATUS.NOT_FOUND);
+    }
+
+    await boardService.assertBoardAccess(list.boardId, userId, requiredRole);
     return list;
   }
 }

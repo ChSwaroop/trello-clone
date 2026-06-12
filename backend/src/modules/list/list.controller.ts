@@ -50,6 +50,24 @@ export class ListController {
     await listService.reorderLists(input, req.user.id);
     sendSuccess(res, { reordered: true });
   });
+
+  archiveList = asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) {
+      throw new AppError("Authentication required", HTTP_STATUS.UNAUTHORIZED);
+    }
+
+    const list = await listService.archiveList(getRouteParam(req, "listId"), req.user.id);
+    sendSuccess(res, list);
+  });
+
+  restoreList = asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) {
+      throw new AppError("Authentication required", HTTP_STATUS.UNAUTHORIZED);
+    }
+
+    const list = await listService.restoreList(getRouteParam(req, "listId"), req.user.id);
+    sendSuccess(res, list);
+  });
 }
 
 export const listController = new ListController();

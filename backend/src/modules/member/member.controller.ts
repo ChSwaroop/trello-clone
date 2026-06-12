@@ -5,11 +5,16 @@ import { asyncHandler } from "../../shared/utils/async-handler.js";
 import { getRouteParam } from "../../shared/utils/route-params.js";
 import { sendSuccess } from "../../shared/utils/response.js";
 import { memberService } from "./member.service.js";
-import type { AssignMemberInput } from "./member.validator.js";
+import type { AssignMemberInput, GetMembersQuery } from "./member.validator.js";
 
 export class MemberController {
-  getMembers = asyncHandler(async (_req: Request, res: Response) => {
-    const members = await memberService.getMembers();
+  getMembers = asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) {
+      throw new AppError("Authentication required", HTTP_STATUS.UNAUTHORIZED);
+    }
+
+    const query = req.query as unknown as GetMembersQuery;
+    const members = await memberService.getMembers(query, req.user.id);
     sendSuccess(res, members);
   });
 

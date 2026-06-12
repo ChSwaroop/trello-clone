@@ -1,4 +1,4 @@
-import type { ActivityType } from "../../generated/prisma/client.js";
+import type { ActivityType, Prisma } from "../../generated/prisma/client.js";
 import { prisma } from "../../db/prisma.js";
 
 type CreateActivityInput = {
@@ -7,6 +7,7 @@ type CreateActivityInput = {
   boardId?: string;
   cardId?: string;
   userId?: string;
+  metadata?: Prisma.InputJsonValue;
 };
 
 export class ActivityRepository {
@@ -18,6 +19,7 @@ export class ActivityRepository {
         ...(input.boardId !== undefined ? { boardId: input.boardId } : {}),
         ...(input.cardId !== undefined ? { cardId: input.cardId } : {}),
         ...(input.userId !== undefined ? { userId: input.userId } : {}),
+        ...(input.metadata !== undefined ? { metadata: input.metadata } : {}),
       },
     });
   }

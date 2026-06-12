@@ -8,7 +8,11 @@ export const createCardSchema = z.object({
 export const updateCardSchema = z.object({
   title: z.string().min(1).max(255).optional(),
   description: z.string().max(5000).optional(),
+  startDate: z.iso.datetime().optional().nullable(),
   dueDate: z.iso.datetime().optional().nullable(),
+  dueComplete: z.boolean().optional(),
+  coverColor: z.string().max(20).optional().nullable(),
+  coverAttachmentId: z.uuid().optional().nullable(),
 });
 
 export const moveCardSchema = z.object({
