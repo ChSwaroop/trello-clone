@@ -8,6 +8,38 @@ export class CardRepository {
     });
   }
 
+  async createAtPosition(listId: string, title: string, position?: number) {
+    return prisma.$transaction(async (tx) => {
+      const cards = await tx.card.findMany({
+        where: { listId, status: "ACTIVE" },
+        orderBy: { position: "asc" },
+      });
+
+      const insertAt =
+        position === undefined
+          ? cards.length
+          : Math.min(Math.max(0, position), cards.length);
+
+      const newCard = await tx.card.create({
+        data: { listId, title, position: insertAt + 1 },
+      });
+
+      const ordered = [...cards];
+      ordered.splice(insertAt, 0, newCard);
+
+      await Promise.all(
+        ordered.map((item, index) =>
+          tx.card.update({
+            where: { id: item.id },
+            data: { position: index + 1 },
+          }),
+        ),
+      );
+
+      return tx.card.findUnique({ where: { id: newCard.id } });
+    });
+  }
+
   async findById(cardId: string) {
     return prisma.card.findUnique({
       where: { id: cardId },

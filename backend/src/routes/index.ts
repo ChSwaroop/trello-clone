@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { authenticateUser } from "../middleware/auth.middleware.js";
+import activityRoutes from "../modules/activity/activity.routes.js";
 import attachmentRoutes from "../modules/attachment/attachment.routes.js";
 import authRoutes from "../modules/auth/auth.routes.js";
 import boardRoutes from "../modules/board/board.routes.js";
@@ -17,6 +18,7 @@ apiRouter.use("/auth", authRoutes);
 
 apiRouter.use(authenticateUser);
 
+apiRouter.use("/activities", activityRoutes);
 apiRouter.use("/workspaces", workspaceRoutes);
 apiRouter.use("/boards", boardRoutes);
 apiRouter.use("/lists", listRoutes);

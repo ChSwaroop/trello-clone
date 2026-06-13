@@ -4,7 +4,7 @@ import { routeTree } from "../../routeTree.gen";
 import { Toaster } from "../ui/sonner";
 import { TooltipProvider } from "../ui/tooltip";
 import { QueryClientWrapper } from "./query-client-provider";
-// import { ThemeProvider } from "./theme-provider";
+import { ThemeProvider } from "./theme-provider";
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const router = createRouter({
@@ -26,12 +26,12 @@ export default function Providers() {
   return (
     <StrictMode>
       <QueryClientWrapper>
-        {/* <ThemeProvider> */}
-        <Toaster richColors />
-        <TooltipProvider delayDuration={0} skipDelayDuration={0}>
-          <RouterProvider router={router} />
-        </TooltipProvider>
-        {/* </ThemeProvider> */}
+        <ThemeProvider>
+          <Toaster richColors />
+          <TooltipProvider delayDuration={0} skipDelayDuration={0}>
+            <RouterProvider router={router} />
+          </TooltipProvider>
+        </ThemeProvider>
       </QueryClientWrapper>
     </StrictMode>
   );

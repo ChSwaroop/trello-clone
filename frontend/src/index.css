@@ -42,10 +42,73 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Trello brand colors */
+  --color-trello-blue: var(--trello-blue);
+  --color-trello-blue-dark: var(--trello-blue-dark);
+  --color-trello-navy: var(--trello-navy);
+  --color-trello-slate: var(--trello-slate);
+  --color-trello-muted: var(--trello-muted);
+  --color-trello-surface: var(--trello-surface);
+  --color-trello-list: var(--trello-list);
+  --color-trello-subtle: var(--trello-subtle);
+  --color-trello-focus: var(--trello-focus);
+  --color-trello-success: var(--trello-success);
+  --color-trello-danger: var(--trello-danger);
+  --color-trello-warn: var(--trello-warn);
+  --color-trello-complete: var(--trello-complete);
+  --color-trello-nav: var(--trello-nav);
+  --color-trello-nav-foreground: var(--trello-nav-foreground);
+  --color-trello-workspace-hero: var(--trello-workspace-hero);
+  --color-trello-card-background: var(--trello-card-background);
+
+  /* Trello ink overlays (dark alpha) */
+  --color-trello-ink-xs: var(--trello-ink-xs);
+  --color-trello-ink-sm: var(--trello-ink-sm);
+  --color-trello-ink-md: var(--trello-ink-md);
+  --color-trello-ink-lg: var(--trello-ink-lg);
+  --color-trello-ink-xl: var(--trello-ink-xl);
+
+  /* Board header glass overlays (white alpha) */
+  --color-board-glass: var(--board-glass);
+  --color-board-glass-md: var(--board-glass-md);
+  --color-board-glass-lg: var(--board-glass-lg);
 }
 
 :root {
   --radius: 0.625rem;
+
+  /* Trello brand colors */
+  --trello-blue: #0079bf;
+  --trello-blue-dark: #026aa7;
+  --trello-navy: #172b4d;
+  --trello-slate: #44546f;
+  --trello-muted: #626f86;
+  --trello-surface: #f4f5f7;
+  --trello-list: #ebecf0;
+  --trello-subtle: #dfe1e6;
+  --trello-focus: #388bff;
+  --trello-success: #61bd4f;
+  --trello-danger: #eb5a46;
+  --trello-warn: #f2d600;
+  --trello-complete: #b3bac5;
+  --trello-nav: #0052cc;
+  --trello-nav-foreground: #ffffff;
+  --trello-workspace-hero: #e4f7fa;
+  --trello-card-background: #ffffff;
+
+  /* Trello ink overlays (dark alpha) */
+  --trello-ink-xs: #091e420f;
+  --trello-ink-sm: #091e4214;
+  --trello-ink-md: #091e4221;
+  --trello-ink-lg: #091e4224;
+  --trello-ink-xl: #091e4280;
+
+  /* Board header glass overlays (white alpha) */
+  --board-glass: #ffffff29;
+  --board-glass-md: #ffffff3d;
+  --board-glass-lg: #ffffff52;
+
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -111,6 +174,36 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+
+  /* Trello brand colors — dark mode */
+  --trello-blue: #579dff;
+  --trello-blue-dark: #388bff;
+  --trello-navy: #b6c2cf;
+  --trello-slate: #8c9bab;
+  --trello-muted: #7a8a98;
+  --trello-surface: #1d2125;
+  --trello-list: #101204;
+  --trello-subtle: #384047;
+  --trello-focus: #85b8ff;
+  --trello-success: #4bce97;
+  --trello-danger: #f87168;
+  --trello-warn: #f5cd47;
+  --trello-complete: #596773;
+  --trello-nav: #0747a6;
+  --trello-nav-foreground: #ffffff;
+  --trello-workspace-hero: #1d474c;
+  --trello-card-background: #242529;
+  /* Trello ink overlays — dark mode (white alpha, since backgrounds are dark) */
+  --trello-ink-xs: #ffffff08;
+  --trello-ink-sm: #ffffff0f;
+  --trello-ink-md: #ffffff1a;
+  --trello-ink-lg: #ffffff21;
+  --trello-ink-xl: #ffffff52;
+
+  /* Board header glass overlays — unchanged (used on colored backgrounds) */
+  --board-glass: #ffffff29;
+  --board-glass-md: #ffffff3d;
+  --board-glass-lg: #ffffff52;
 }
 
 @layer base {
@@ -138,6 +231,6 @@
 @layer utilities {
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: #091e4221 transparent;
+    scrollbar-color: var(--trello-ink-md) transparent;
   }
 }

@@ -17,11 +17,17 @@ export default function SortableCard({ card, listId }: SortableCardProps) {
   const filteredCardIds = useBoardStore((state) => state.filteredCardIds);
   const pointerStart = useRef<{ x: number; y: number } | null>(null);
 
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({
-      id: card.id,
-      data: { type: "card", listId, card },
-    });
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: card.id,
+    data: { type: "card", listId, card },
+  });
 
   if (!cardMatchesFilters(card, activeFilters, filteredCardIds)) {
     return null;
@@ -50,16 +56,19 @@ export default function SortableCard({ card, listId }: SortableCardProps) {
     <div
       ref={setNodeRef}
       style={{
-        transform: CSS.Transform.toString(transform),
-        transition,
+        transform: isDragging ? undefined : CSS.Transform.toString(transform),
+        transition: isDragging ? undefined : transition,
       }}
-      className={cn("mb-2 cursor-pointer", isDragging && "z-20 opacity-40")}
+      className={cn(
+        "relative z-0 p-1",
+        isDragging ? "pointer-events-none" : "cursor-pointer",
+      )}
       {...attributes}
       {...listeners}
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
     >
-      <CardPreview card={card} isDragging={isDragging} />
+      <CardPreview card={card} isGhost={isDragging} />
     </div>
   );
 }

@@ -36,10 +36,11 @@ function BoardPageContent({ boardId }: BoardPageProps) {
   );
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden" style={backgroundStyle}>
-      <div className="bg-[#0000003d]">
-        <BoardHeader boardId={boardId} />
-      </div>
+    <div
+      className="flex h-screen flex-col overflow-hidden"
+      style={backgroundStyle}
+    >
+      <BoardHeader boardId={boardId} />
       <BoardCanvas boardId={boardId} />
       <CardModal boardId={boardId} />
     </div>

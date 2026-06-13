@@ -6,6 +6,7 @@ import {
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragOverEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
 import {
@@ -18,6 +19,10 @@ import { motion } from "framer-motion";
 import SortableListColumn from "@/components/molecules/board/sortable-list-column";
 import CardPreview from "@/components/molecules/board/card-preview";
 import AddListButton from "@/components/molecules/board/add-list-button";
+import {
+  findCardListId,
+  getDropTarget,
+} from "@/components/molecules/board/drag-utils";
 import useBoards from "@/hooks/apis/use-boards";
 import useLists from "@/hooks/apis/use-lists";
 import useCards from "@/hooks/apis/use-cards";
@@ -38,8 +43,11 @@ export default function BoardCanvas({ boardId }: BoardCanvasProps) {
 
   const setDraggingCardId = useBoardStore((state) => state.setDraggingCardId);
   const setDraggingListId = useBoardStore((state) => state.setDraggingListId);
+  const setDropTarget = useBoardStore((state) => state.setDropTarget);
 
-  const [activeCard, setActiveCard] = useState<CARD_WITH_RELATIONS | null>(null);
+  const [activeCard, setActiveCard] = useState<CARD_WITH_RELATIONS | null>(
+    null,
+  );
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -47,15 +55,16 @@ export default function BoardCanvas({ boardId }: BoardCanvasProps) {
     }),
   );
 
-  const listIds = useMemo(() => data.lists.map((list) => list.id), [data.lists]);
+  const listIds = useMemo(
+    () => data.lists.map((list) => list.id),
+    [data.lists],
+  );
 
-  const findCardListId = (cardId: string) => {
-    for (const list of data.lists) {
-      if (list.cards.some((card) => card.id === cardId)) {
-        return list.id;
-      }
-    }
-    return null;
+  const clearDragState = () => {
+    setActiveCard(null);
+    setDraggingCardId(null);
+    setDraggingListId(null);
+    setDropTarget(null);
   };
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -71,14 +80,24 @@ export default function BoardCanvas({ boardId }: BoardCanvasProps) {
 
     if (type === "list") {
       setDraggingListId(active.id as string);
+      setDropTarget(null);
     }
+  };
+
+  const handleDragOver = (event: DragOverEvent) => {
+    const { active, over } = event;
+
+    if (active.data.current?.type !== "card") {
+      setDropTarget(null);
+      return;
+    }
+
+    setDropTarget(getDropTarget(data.lists, active.id as string, over));
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
-    setActiveCard(null);
-    setDraggingCardId(null);
-    setDraggingListId(null);
+    clearDragState();
 
     if (!over) {
       return;
@@ -97,14 +116,17 @@ export default function BoardCanvas({ boardId }: BoardCanvasProps) {
       const reordered = arrayMove(data.lists, oldIndex, newIndex);
       await reorderLists({
         boardId,
-        lists: reordered.map((list, index) => ({ id: list.id, position: index })),
+        lists: reordered.map((list, index) => ({
+          id: list.id,
+          position: index,
+        })),
       });
       return;
     }
 
     if (activeType === "card") {
       const cardId = active.id as string;
-      const sourceListId = findCardListId(cardId);
+      const sourceListId = findCardListId(data.lists, cardId);
       if (!sourceListId) {
         return;
       }
@@ -113,13 +135,18 @@ export default function BoardCanvas({ boardId }: BoardCanvasProps) {
       let destinationIndex = 0;
 
       if (over.data.current?.type === "card") {
-        destinationListId = findCardListId(over.id as string) ?? undefined;
-        const destinationList = data.lists.find((list) => list.id === destinationListId);
+        destinationListId =
+          findCardListId(data.lists, over.id as string) ?? undefined;
+        const destinationList = data.lists.find(
+          (list) => list.id === destinationListId,
+        );
         destinationIndex =
           destinationList?.cards.findIndex((card) => card.id === over.id) ?? 0;
       } else {
         destinationListId = over.id as string;
-        const destinationList = data.lists.find((list) => list.id === destinationListId);
+        const destinationList = data.lists.find(
+          (list) => list.id === destinationListId,
+        );
         destinationIndex = destinationList?.cards.length ?? 0;
       }
 
@@ -128,9 +155,21 @@ export default function BoardCanvas({ boardId }: BoardCanvasProps) {
       }
 
       const sourceList = data.lists.find((list) => list.id === sourceListId);
-      const sourceIndex = sourceList?.cards.findIndex((card) => card.id === cardId) ?? -1;
+      const sourceIndex =
+        sourceList?.cards.findIndex((card) => card.id === cardId) ?? -1;
 
-      if (sourceListId === destinationListId && sourceIndex === destinationIndex) {
+      if (
+        sourceListId === destinationListId &&
+        sourceIndex !== -1 &&
+        sourceIndex < destinationIndex
+      ) {
+        destinationIndex -= 1;
+      }
+
+      if (
+        sourceListId === destinationListId &&
+        sourceIndex === destinationIndex
+      ) {
         return;
       }
 
@@ -154,12 +193,21 @@ export default function BoardCanvas({ boardId }: BoardCanvasProps) {
           sensors={sensors}
           collisionDetection={closestCorners}
           onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
           onDragEnd={(event) => void handleDragEnd(event)}
+          onDragCancel={clearDragState}
         >
-          <SortableContext items={listIds} strategy={horizontalListSortingStrategy}>
+          <SortableContext
+            items={listIds}
+            strategy={horizontalListSortingStrategy}
+          >
             <div className="flex h-full items-start gap-3">
               {data.lists.map((list) => (
-                <SortableListColumn key={list.id} list={list} boardId={boardId} />
+                <SortableListColumn
+                  key={list.id}
+                  list={list}
+                  boardId={boardId}
+                />
               ))}
               <AddListButton boardId={boardId} />
             </div>
