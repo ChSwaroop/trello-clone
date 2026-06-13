@@ -6,7 +6,9 @@ import { getRouteParam } from "../../shared/utils/route-params.js";
 import { sendSuccess } from "../../shared/utils/response.js";
 import { listService } from "./list.service.js";
 import type {
+  CopyListInput,
   CreateListInput,
+  MoveListInput,
   ReorderListsInput,
   UpdateListInput,
 } from "./list.validator.js";
@@ -66,6 +68,26 @@ export class ListController {
     }
 
     const list = await listService.restoreList(getRouteParam(req, "listId"), req.user.id);
+    sendSuccess(res, list);
+  });
+
+  copyList = asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) {
+      throw new AppError("Authentication required", HTTP_STATUS.UNAUTHORIZED);
+    }
+
+    const input = req.body as CopyListInput;
+    const list = await listService.copyList(getRouteParam(req, "listId"), input, req.user.id);
+    sendSuccess(res, list, HTTP_STATUS.CREATED);
+  });
+
+  moveList = asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) {
+      throw new AppError("Authentication required", HTTP_STATUS.UNAUTHORIZED);
+    }
+
+    const input = req.body as MoveListInput;
+    const list = await listService.moveList(getRouteParam(req, "listId"), input, req.user.id);
     sendSuccess(res, list);
   });
 }

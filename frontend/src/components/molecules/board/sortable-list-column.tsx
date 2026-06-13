@@ -1,22 +1,34 @@
+import { useDndContext } from "@dnd-kit/core";
 import type { DraggableAttributes } from "@dnd-kit/core";
 import type { SyntheticListenerMap } from "@dnd-kit/core/dist/hooks/utilities";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { motion } from "framer-motion";
 import ListColumn from "@/components/molecules/board/list-column";
+import ListDropPlaceholder from "@/components/molecules/board/list-drop-placeholder";
 import type { LIST_WITH_CARDS } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type SortableListColumnProps = {
   list: LIST_WITH_CARDS;
   boardId: string;
+  boardTitle: string;
+  boardListCount: number;
+  dragPlaceholderHeight?: number;
 };
 
-export default function SortableListColumn({ list, boardId }: SortableListColumnProps) {
+export default function SortableListColumn({
+  list,
+  boardId,
+  boardTitle,
+  boardListCount,
+  dragPlaceholderHeight,
+}: SortableListColumnProps) {
+  const { over } = useDndContext();
+
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({
       id: list.id,
-      data: { type: "list", listId: list.id },
+      data: { type: "list", listId: list.id, list },
     });
 
   const dragHandleProps = {
@@ -24,17 +36,34 @@ export default function SortableListColumn({ list, boardId }: SortableListColumn
     ...listeners,
   } as DraggableAttributes & SyntheticListenerMap;
 
+  const isNearDropTarget = isDragging && Boolean(over);
+
   return (
-    <motion.div
-      layout
+    <div
       ref={setNodeRef}
       style={{
         transform: CSS.Transform.toString(transform),
         transition,
       }}
-      className={cn(isDragging && "opacity-60")}
+      className={cn(
+        "shrink-0",
+        isDragging && "relative z-0 pointer-events-none",
+      )}
     >
-      <ListColumn list={list} boardId={boardId} dragHandleProps={dragHandleProps} />
-    </motion.div>
+      {isDragging ? (
+        <ListDropPlaceholder
+          height={dragPlaceholderHeight}
+          isActive={isNearDropTarget}
+        />
+      ) : (
+        <ListColumn
+          list={list}
+          boardId={boardId}
+          boardTitle={boardTitle}
+          boardListCount={boardListCount}
+          dragHandleProps={dragHandleProps}
+        />
+      )}
+    </div>
   );
 }

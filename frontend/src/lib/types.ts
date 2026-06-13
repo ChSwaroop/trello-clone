@@ -319,6 +319,15 @@ export type REORDER_LISTS_PAYLOAD = {
   lists: Array<{ id: string; position: number }>;
 };
 
+export type COPY_LIST_PAYLOAD = {
+  title: string;
+};
+
+export type MOVE_LIST_PAYLOAD = {
+  destinationBoardId: string;
+  position: number;
+};
+
 export type CREATE_CARD_PAYLOAD = {
   listId: string;
   title: string;

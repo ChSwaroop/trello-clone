@@ -7,11 +7,11 @@ import {
 } from "@dnd-kit/sortable";
 import { Fragment, useState } from "react";
 import { motion } from "framer-motion";
-import { Minimize2, MoreHorizontal, Plus, X } from "lucide-react";
+import { Minimize2, Plus, X } from "lucide-react";
 import CardDropPlaceholder from "@/components/molecules/board/card-drop-placeholder";
 import CardInsertSlot from "@/components/molecules/board/card-insert-slot";
+import ListActionsPopover from "@/components/molecules/board/list-actions-popover";
 import SortableCard from "@/components/molecules/board/sortable-card";
-import ListActionsMenu from "@/components/molecules/board/list-actions-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import useLists from "@/hooks/apis/use-lists";
@@ -23,6 +23,8 @@ import { useBoardStore } from "@/stores/use-board-store";
 type ListColumnProps = {
   list: LIST_WITH_CARDS;
   boardId: string;
+  boardTitle: string;
+  boardListCount: number;
   dragHandleProps?: DraggableAttributes & SyntheticListenerMap;
 };
 
@@ -36,6 +38,8 @@ const LIST_COLLAPSE_TRANSITION = {
 export default function ListColumn({
   list,
   boardId,
+  boardTitle,
+  boardListCount,
   dragHandleProps,
 }: ListColumnProps) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -43,12 +47,11 @@ export default function ListColumn({
   const [addingCardAt, setAddingCardAt] = useState<number | null>(null);
   const [newCardTitle, setNewCardTitle] = useState("");
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
-  const { useUpdateList, useDeleteList } = useLists(boardId);
+  const { useUpdateList } = useLists(boardId);
   const { useCreateCard } = useCards(boardId);
   const { mutateAsync: updateList } = useUpdateList();
-  const { mutateAsync: deleteList } = useDeleteList();
   const { mutateAsync: createCard, isPending: isCreatingCard } =
     useCreateCard();
 
@@ -95,7 +98,7 @@ export default function ListColumn({
   };
 
   const handleCollapse = () => {
-    setShowMenu(false);
+    setMenuOpen(false);
     closeAddCardForm();
     setIsEditingTitle(false);
     setTitle(list.title);
@@ -215,15 +218,6 @@ export default function ListColumn({
             : "max-h-full min-h-0 flex-1",
         )}
       >
-        {/* Actions menu */}
-        {showMenu && (
-          <ListActionsMenu
-            onClose={() => setShowMenu(false)}
-            onAddCard={() => setAddingCardAt(list.cards.length)}
-            onDeleteList={() => void deleteList(list.id)}
-          />
-        )}
-
         {/* List header */}
         <div className="flex items-center gap-1 px-2 pt-2 pb-1">
           {isEditingTitle ? (
@@ -271,15 +265,18 @@ export default function ListColumn({
           </Button>
 
           {/* List actions */}
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="size-7 shrink-0 text-trello-slate hover:bg-trello-ink-lg"
-            onClick={() => setShowMenu(true)}
-            aria-label="List actions"
-          >
-            <MoreHorizontal className="size-4" />
-          </Button>
+          <ListActionsPopover
+            list={list}
+            boardId={boardId}
+            boardTitle={boardTitle}
+            boardListCount={boardListCount}
+            open={menuOpen}
+            onOpenChange={setMenuOpen}
+            onAddCard={() => {
+              setAddingCardAt(list.cards.length);
+              setNewCardTitle("");
+            }}
+          />
         </div>
 
         {/* Cards area */}
