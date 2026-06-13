@@ -67,6 +67,17 @@ export class ChecklistRepository {
   async deleteItem(itemId: string) {
     return prisma.checklistItem.delete({ where: { id: itemId } });
   }
+
+  async deleteChecklist(checklistId: string) {
+    return prisma.checklist.delete({ where: { id: checklistId } });
+  }
+
+  async findById(checklistId: string) {
+    return prisma.checklist.findUnique({
+      where: { id: checklistId },
+      include: { card: { include: { list: true } } },
+    });
+  }
 }
 
 export const checklistRepository = new ChecklistRepository();

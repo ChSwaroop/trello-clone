@@ -30,6 +30,12 @@ export default function useCardExtras(boardId: string) {
     );
   };
 
+  const invalidateCardActivities = (cardId: string) => {
+    void queryClient.invalidateQueries({
+      queryKey: ["get-card-activities", cardId],
+    });
+  };
+
   const useCreateLabel = () =>
     useMutation({
       mutationKey: ["create-label", boardId],
@@ -101,6 +107,7 @@ export default function useCardExtras(boardId: string) {
             })),
           };
         });
+        invalidateCardActivities(cardId);
       },
       onError: (error) => toast.error(getApiErrorMessage(error)),
     });
@@ -132,6 +139,7 @@ export default function useCardExtras(boardId: string) {
             ),
           })),
         }));
+        invalidateCardActivities(cardId);
       },
       onError: (error) => toast.error(getApiErrorMessage(error)),
     });
@@ -164,6 +172,7 @@ export default function useCardExtras(boardId: string) {
             ),
           })),
         }));
+        invalidateCardActivities(cardId);
       },
       onError: (error) => toast.error(getApiErrorMessage(error)),
     });
@@ -195,6 +204,7 @@ export default function useCardExtras(boardId: string) {
             ),
           })),
         }));
+        invalidateCardActivities(cardId);
       },
       onError: (error) => toast.error(getApiErrorMessage(error)),
     });
@@ -230,6 +240,7 @@ export default function useCardExtras(boardId: string) {
             ),
           })),
         }));
+        invalidateCardActivities(cardId);
       },
       onError: (error) => toast.error(getApiErrorMessage(error)),
     });
@@ -299,6 +310,64 @@ export default function useCardExtras(boardId: string) {
             })),
           })),
         }));
+
+        const board = queryClient.getQueryData<BOARD_DETAILS>([
+          "get-board-details",
+          boardId,
+        ]);
+        const cardId = board?.lists
+          .flatMap((list) => list.cards)
+          .find((card) =>
+            card.checklists.some((checklist) => checklist.id === item.checklistId),
+          )?.id;
+        if (cardId) invalidateCardActivities(cardId);
+      },
+      onError: (error) => toast.error(getApiErrorMessage(error)),
+    });
+
+  const useDeleteChecklist = () =>
+    useMutation({
+      mutationKey: ["delete-checklist", boardId],
+      mutationFn: async (checklistId: string) => {
+        await api.delete(`/checklists/${checklistId}`);
+        return checklistId;
+      },
+      onSuccess: (checklistId) => {
+        updateBoardCache((prev) => ({
+          ...prev,
+          lists: prev.lists.map((list) => ({
+            ...list,
+            cards: list.cards.map((card) => ({
+              ...card,
+              checklists: card.checklists.filter((cl) => cl.id !== checklistId),
+            })),
+          })),
+        }));
+      },
+      onError: (error) => toast.error(getApiErrorMessage(error)),
+    });
+
+  const useDeleteChecklistItem = () =>
+    useMutation({
+      mutationKey: ["delete-checklist-item", boardId],
+      mutationFn: async (itemId: string) => {
+        await api.delete(`/checklist-items/${itemId}`);
+        return itemId;
+      },
+      onSuccess: (itemId) => {
+        updateBoardCache((prev) => ({
+          ...prev,
+          lists: prev.lists.map((list) => ({
+            ...list,
+            cards: list.cards.map((card) => ({
+              ...card,
+              checklists: card.checklists.map((checklist) => ({
+                ...checklist,
+                items: checklist.items.filter((item) => item.id !== itemId),
+              })),
+            })),
+          })),
+        }));
       },
       onError: (error) => toast.error(getApiErrorMessage(error)),
     });
@@ -331,6 +400,7 @@ export default function useCardExtras(boardId: string) {
             ),
           })),
         }));
+        invalidateCardActivities(cardId);
       },
       onError: (error) => toast.error(getApiErrorMessage(error)),
     });
@@ -400,8 +470,10 @@ export default function useCardExtras(boardId: string) {
     useAssignMember,
     useRemoveMember,
     useCreateChecklist,
+    useDeleteChecklist,
     useCreateChecklistItem,
     useUpdateChecklistItem,
+    useDeleteChecklistItem,
     useCreateComment,
     useUpdateComment,
     useDeleteComment,

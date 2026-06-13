@@ -45,7 +45,7 @@ export class MemberService {
 
     await activityService.log({
       type: "MEMBER_ASSIGNED",
-      message: `${member.name} was assigned to "${card.title}"`,
+      message: `${member.name} joined this card`,
       boardId: card.list.boardId,
       cardId,
       userId,
@@ -69,7 +69,7 @@ export class MemberService {
 
     await activityService.log({
       type: "MEMBER_UNASSIGNED",
-      message: `${member?.name ?? "Member"} was unassigned from "${card.title}"`,
+      message: `${member?.name ?? "Member"} left this card`,
       boardId: card.list.boardId,
       cardId,
       userId,

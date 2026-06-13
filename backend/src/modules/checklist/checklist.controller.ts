@@ -58,6 +58,15 @@ export class ChecklistController {
     await checklistService.deleteChecklistItem(getRouteParam(req, "itemId"), req.user.id);
     sendSuccess(res, { deleted: true });
   });
+
+  deleteChecklist = asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) {
+      throw new AppError("Authentication required", HTTP_STATUS.UNAUTHORIZED);
+    }
+
+    await checklistService.deleteChecklist(getRouteParam(req, "checklistId"), req.user.id);
+    sendSuccess(res, { deleted: true });
+  });
 }
 
 export const checklistController = new ChecklistController();

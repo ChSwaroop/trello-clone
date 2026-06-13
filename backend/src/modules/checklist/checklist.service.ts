@@ -25,10 +25,11 @@ export class ChecklistService {
 
     await activityService.log({
       type: "CHECKLIST_CREATED",
-      message: `Checklist "${checklist.title}" was created on "${card.title}"`,
+      message: `added checklist "${checklist.title}" to this card`,
       boardId: card.list.boardId,
       cardId,
       userId,
+      metadata: { checklistTitle: checklist.title },
     });
 
     return checklist;
@@ -91,11 +92,18 @@ export class ChecklistService {
 
     await activityService.log({
       type: "CHECKLIST_UPDATED",
-      message: `Checklist item "${updated.title}" was updated`,
+      message:
+        input.isCompleted === true
+          ? `completed "${updated.title}" on this card`
+          : input.isCompleted === false
+            ? `marked "${updated.title}" as incomplete on this card`
+            : `updated checklist item "${updated.title}"`,
       boardId: item.checklist.card.list.boardId,
       cardId: item.checklist.cardId,
       userId,
       metadata: {
+        itemTitle: updated.title,
+        checklistTitle: item.checklist.title,
         ...(input.title !== undefined ? { title: input.title } : {}),
         ...(input.isCompleted !== undefined ? { isCompleted: input.isCompleted } : {}),
         ...(input.assignedToId !== undefined ? { assignedToId: input.assignedToId } : {}),
@@ -115,6 +123,17 @@ export class ChecklistService {
 
     await boardService.assertBoardAccess(item.checklist.card.list.boardId, userId, "MEMBER");
     await checklistRepository.deleteItem(itemId);
+  }
+
+  async deleteChecklist(checklistId: string, userId: string) {
+    const checklist = await checklistRepository.findById(checklistId);
+
+    if (!checklist) {
+      throw new AppError("Checklist not found", HTTP_STATUS.NOT_FOUND);
+    }
+
+    await boardService.assertBoardAccess(checklist.card.list.boardId, userId, "MEMBER");
+    await checklistRepository.deleteChecklist(checklistId);
   }
 }
 

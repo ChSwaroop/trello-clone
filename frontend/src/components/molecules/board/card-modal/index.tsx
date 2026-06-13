@@ -31,7 +31,7 @@ export default function CardModal({ boardId }: Props) {
     <Dialog open={isOpen} onOpenChange={(open) => !open && closeCardModal()}>
       <DialogContent
         showCloseButton={false}
-        className="flex max-h-[95vh] w-full max-w-[calc(100%-2rem)] flex-col overflow-hidden rounded-xl border-none bg-trello-card-background! p-0 sm:max-w-3xl"
+        className="flex max-h-[95vh] w-full max-w-[calc(100%-2rem)] flex-col overflow-hidden rounded-xl border-none bg-trello-card-background! p-0 sm:max-w-3xl md:max-w-[960px]"
       >
         <DialogTitle className="sr-only">{card.title}</DialogTitle>
         <CardModalContent boardId={boardId} card={card} onClose={closeCardModal} />

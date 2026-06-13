@@ -125,6 +125,7 @@ export default function useCards(boardId: string) {
                     ...payload,
                     startDate: payload.startDate === null ? undefined : payload.startDate ?? card.startDate,
                     dueDate: payload.dueDate === null ? undefined : payload.dueDate ?? card.dueDate,
+                    dueTime: payload.dueTime === null ? undefined : payload.dueTime ?? card.dueTime,
                     coverColor: payload.coverColor === null ? undefined : payload.coverColor ?? card.coverColor,
                     coverAttachmentId:
                       payload.coverAttachmentId === null
@@ -143,6 +144,11 @@ export default function useCards(boardId: string) {
           queryClient.setQueryData(["get-board-details", boardId], context.previous);
         }
         toast.error(getApiErrorMessage(error));
+      },
+      onSuccess: (_data, { cardId }) => {
+        void queryClient.invalidateQueries({
+          queryKey: ["get-card-activities", cardId],
+        });
       },
     });
 

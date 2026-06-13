@@ -4,6 +4,8 @@ import { AppError } from "../../shared/utils/app-error.js";
 import { asyncHandler } from "../../shared/utils/async-handler.js";
 import { getRouteParam } from "../../shared/utils/route-params.js";
 import { sendSuccess } from "../../shared/utils/response.js";
+import { activityService } from "../activity/activity.service.js";
+import type { GetActivitiesQuery } from "../activity/activity.validator.js";
 import { cardService } from "./card.service.js";
 import type {
   CreateCardInput,
@@ -80,6 +82,20 @@ export class CardController {
     const query = req.query as unknown as FilterCardsQuery;
     const cards = await cardService.filterCards(query, req.user.id);
     sendSuccess(res, cards);
+  });
+
+  getCardActivities = asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) {
+      throw new AppError("Authentication required", HTTP_STATUS.UNAUTHORIZED);
+    }
+
+    const query = req.query as unknown as GetActivitiesQuery;
+    const result = await activityService.getCardActivities(
+      getRouteParam(req, "cardId"),
+      req.user.id,
+      query,
+    );
+    sendSuccess(res, result);
   });
 }
 

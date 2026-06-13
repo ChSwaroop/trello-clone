@@ -52,6 +52,7 @@ export class CardService {
       input.description === undefined &&
       input.startDate === undefined &&
       input.dueDate === undefined &&
+      input.dueTime === undefined &&
       input.dueComplete === undefined &&
       input.coverColor === undefined &&
       input.coverAttachmentId === undefined
@@ -76,6 +77,7 @@ export class CardService {
       ...(input.dueDate !== undefined
         ? { dueDate: input.dueDate ? new Date(input.dueDate) : null }
         : {}),
+      ...(input.dueTime !== undefined ? { dueTime: input.dueTime } : {}),
       ...(input.dueComplete !== undefined ? { dueComplete: input.dueComplete } : {}),
       ...(input.coverColor !== undefined ? { coverColor: input.coverColor } : {}),
       ...(input.coverAttachmentId !== undefined
@@ -108,16 +110,53 @@ export class CardService {
       });
     }
     if (input.dueDate !== undefined) {
-      await activityService.log({
-        type: input.dueDate ? "DUE_DATE_SET" : "DUE_DATE_CLEARED",
-        message: input.dueDate
-          ? `Due date was set on "${updated.title}"`
-          : `Due date was cleared on "${updated.title}"`,
-        boardId: card.list.boardId,
-        cardId: updated.id,
-        userId,
-        metadata: { dueDate: input.dueDate },
-      });
+      const dueDateValue = input.dueDate ?? updated.dueDate?.toISOString() ?? null;
+      const dueTimeValue = input.dueTime !== undefined ? input.dueTime : updated.dueTime;
+      const hadDueDate = card.dueDate !== null;
+
+      if (!input.dueDate) {
+        await activityService.log({
+          type: "DUE_DATE_CLEARED",
+          message: "removed the due date from this card",
+          boardId: card.list.boardId,
+          cardId: updated.id,
+          userId,
+        });
+      } else {
+        await activityService.log({
+          type: "DUE_DATE_SET",
+          message: hadDueDate
+            ? "changed the due date of this card"
+            : "set this card to be due",
+          boardId: card.list.boardId,
+          cardId: updated.id,
+          userId,
+          metadata: {
+            dueDate: dueDateValue,
+            dueTime: dueTimeValue,
+            action: hadDueDate ? "changed" : "set",
+          },
+        });
+      }
+    } else if (input.dueTime !== undefined) {
+      const hadDueDate = card.dueDate !== null;
+
+      if (updated.dueDate) {
+        await activityService.log({
+          type: "DUE_DATE_SET",
+          message: hadDueDate
+            ? "changed the due date of this card"
+            : "set this card to be due",
+          boardId: card.list.boardId,
+          cardId: updated.id,
+          userId,
+          metadata: {
+            dueDate: updated.dueDate.toISOString(),
+            dueTime: input.dueTime,
+            action: hadDueDate ? "changed" : "set",
+          },
+        });
+      }
     }
 
     if (input.startDate !== undefined) {

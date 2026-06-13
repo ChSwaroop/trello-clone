@@ -2,6 +2,7 @@ import { Router } from "express";
 import { validateRequest } from "../../middleware/validate-request.js";
 import { checklistController } from "./checklist.controller.js";
 import {
+  checklistIdParamSchema,
   checklistItemIdParamSchema,
   createChecklistItemSchema,
   updateChecklistItemSchema,
@@ -25,4 +26,12 @@ checklistItemRoutes.delete(
   checklistController.deleteChecklistItem,
 );
 
-export { checklistItemRoutes };
+const checklistRoutes = Router();
+
+checklistRoutes.delete(
+  "/:checklistId",
+  validateRequest({ params: checklistIdParamSchema }),
+  checklistController.deleteChecklist,
+);
+
+export { checklistItemRoutes, checklistRoutes };

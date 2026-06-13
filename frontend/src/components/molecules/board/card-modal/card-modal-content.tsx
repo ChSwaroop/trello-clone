@@ -8,6 +8,7 @@ import {
   MoreHorizontal,
   Plus,
   Trash2,
+  UserPlus,
   X,
 } from "lucide-react";
 import MemberAvatar from "@/components/molecules/member-avatar";
@@ -32,8 +33,10 @@ import useCardExtras from "@/hooks/apis/use-card-extras";
 import type { CARD_WITH_RELATIONS } from "@/lib/types";
 import { cn, formatDatesBadge } from "@/lib/utils";
 import AddToCardMenu from "./add-to-card-menu";
+import ChecklistPanel from "./checklist-panel";
 import DatesPanel from "./dates-panel";
 import LabelsPanel from "./labels-panel";
+import MembersPanel from "./members-panel";
 import ToolbarButton from "./toolbar-button";
 
 type Props = {
@@ -68,7 +71,6 @@ export default function CardModalContent({ boardId, card, onClose }: Props) {
   const [title, setTitle] = useState(card.title);
   const [description, setDescription] = useState(card.description ?? "");
   const [isEditingDescription, setIsEditingDescription] = useState(false);
-  const [newChecklistTitle, setNewChecklistTitle] = useState("Checklist");
 
   /**
    * openToolbar values:
@@ -85,6 +87,12 @@ export default function CardModalContent({ boardId, card, onClose }: Props) {
   const [labelsFromAdd, setLabelsFromAdd] = useState(false);
   /** True when the Dates panel was opened via Add → Dates (shows back arrow). */
   const [datesFromAdd, setDatesFromAdd] = useState(false);
+  /** True when the Checklist panel was opened via Add → Checklist (shows back arrow). */
+  const [checklistFromAdd, setChecklistFromAdd] = useState(false);
+  /** True when the Members panel was opened via Add → Members (shows back arrow). */
+  const [membersFromAdd, setMembersFromAdd] = useState(false);
+  /** True when the Members panel was opened from the body + button. */
+  const [membersBodyOpen, setMembersBodyOpen] = useState(false);
 
   const titleTextareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -127,7 +135,183 @@ export default function CardModalContent({ boardId, card, onClose }: Props) {
   const toggleToolbar = (key: string) =>
     setOpenToolbar((prev) => (prev === key ? null : key));
 
-  const closeToolbar = () => setOpenToolbar(null);
+  const closeToolbar = () => {
+    setOpenToolbar(null);
+    setMembersBodyOpen(false);
+  };
+
+  const handleAssignMember = (memberId: string) =>
+    assignMember({ cardId: card.id, payload: { memberId } });
+
+  const handleRemoveMember = (memberId: string) =>
+    removeMember({ cardId: card.id, memberId });
+
+  const renderToolbar = () => (
+    <div className="relative ml-6 flex flex-nowrap items-center gap-2 py-5">
+      <ToolbarButton
+        icon={Plus}
+        label="Add"
+        isOpen={
+          openToolbar === "add" ||
+          (openToolbar === "labels" && labelsFromAdd) ||
+          (openToolbar === "dates" && datesFromAdd) ||
+          (openToolbar === "checklist" && checklistFromAdd) ||
+          (openToolbar === "members" && membersFromAdd)
+        }
+        onToggle={() => {
+          setLabelsFromAdd(false);
+          setDatesFromAdd(false);
+          setChecklistFromAdd(false);
+          setMembersFromAdd(false);
+          toggleToolbar("add");
+        }}
+        onClose={closeToolbar}
+      >
+        {openToolbar === "labels" && labelsFromAdd ? (
+          <LabelsPanel
+            boardId={boardId}
+            card={card}
+            isOpen
+            showBack
+            onBack={() => setOpenToolbar("add")}
+            onClose={closeToolbar}
+            onAssign={(labelId) =>
+              void assignLabel({ cardId: card.id, payload: { labelId } })
+            }
+            onRemove={(labelId) =>
+              void removeLabel({ cardId: card.id, labelId })
+            }
+          />
+        ) : openToolbar === "dates" && datesFromAdd ? (
+          <DatesPanel
+            card={card}
+            onBack={() => setOpenToolbar("add")}
+            onClose={closeToolbar}
+            onSave={(payload) =>
+              void updateCard({ cardId: card.id, payload }).then(closeToolbar)
+            }
+            onRemove={() =>
+              void updateCard({
+                cardId: card.id,
+                payload: {
+                  startDate: null,
+                  dueDate: null,
+                  dueTime: null,
+                },
+              }).then(closeToolbar)
+            }
+          />
+        ) : openToolbar === "checklist" && checklistFromAdd ? (
+          <ChecklistPanel
+            onBack={() => setOpenToolbar("add")}
+            onClose={closeToolbar}
+            onAdd={(title) =>
+              void createChecklist({
+                cardId: card.id,
+                payload: { title },
+              }).then(closeToolbar)
+            }
+          />
+        ) : openToolbar === "members" && membersFromAdd ? (
+          <MembersPanel
+            boardMembers={data.members}
+            cardMembers={card.members}
+            onBack={() => setOpenToolbar("add")}
+            onClose={closeToolbar}
+            onAssign={handleAssignMember}
+            onRemove={handleRemoveMember}
+          />
+        ) : (
+          <AddToCardMenu
+            onClose={closeToolbar}
+            onSelect={(key) => {
+              if (key === "labels") {
+                setLabelsFromAdd(true);
+                setOpenToolbar("labels");
+                return;
+              }
+              if (key === "dates") {
+                setDatesFromAdd(true);
+                setOpenToolbar("dates");
+                return;
+              }
+              if (key === "checklist") {
+                setChecklistFromAdd(true);
+                setOpenToolbar("checklist");
+                return;
+              }
+              if (key === "members") {
+                setMembersFromAdd(true);
+                setOpenToolbar("members");
+                return;
+              }
+              setLabelsFromAdd(false);
+              setDatesFromAdd(false);
+              setChecklistFromAdd(false);
+              setMembersFromAdd(false);
+              setOpenToolbar(key);
+            }}
+          />
+        )}
+      </ToolbarButton>
+
+      <ToolbarButton
+        icon={UserPlus}
+        label="Members"
+        isOpen={openToolbar === "members" && !membersFromAdd}
+        onToggle={() => {
+          setMembersFromAdd(false);
+          setMembersBodyOpen(false);
+          toggleToolbar("members");
+        }}
+        onClose={closeToolbar}
+      >
+        <MembersPanel
+          boardMembers={data.members}
+          cardMembers={card.members}
+          onClose={closeToolbar}
+          onAssign={handleAssignMember}
+          onRemove={handleRemoveMember}
+        />
+      </ToolbarButton>
+
+      <ToolbarButton
+        icon={CheckSquare}
+        label="Checklist"
+        isOpen={openToolbar === "checklist" && !checklistFromAdd}
+        onToggle={() => {
+          setChecklistFromAdd(false);
+          toggleToolbar("checklist");
+        }}
+        onClose={closeToolbar}
+      >
+        <ChecklistPanel
+          onClose={closeToolbar}
+          onAdd={(title) =>
+            void createChecklist({
+              cardId: card.id,
+              payload: { title },
+            }).then(closeToolbar)
+          }
+        />
+      </ToolbarButton>
+    </div>
+  );
+
+  const renderAttachmentPanel = (className?: string) =>
+    openToolbar === "attachment" ? (
+      <div className={cn("relative", className)}>
+        <div className="w-fit rounded-lg border border-trello-ink-md bg-trello-card-background p-3 shadow-md">
+          <p className="mb-2 text-xs font-semibold text-trello-slate">
+            Attach a link
+          </p>
+          <Input
+            placeholder="Paste a link…"
+            className="w-60 bg-trello-card-background text-sm"
+          />
+        </div>
+      </div>
+    ) : null;
 
   return (
     <div className="relative flex min-h-0 w-full flex-col">
@@ -226,12 +410,13 @@ export default function CardModalContent({ boardId, card, onClose }: Props) {
         </div>
       </div>
 
-      {/* Two-column body */}
-      <div className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[minmax(0,1fr)_272px]">
-        {/* LEFT */}
-        <div className="scrollbar-thin min-w-0 overflow-y-auto p-6">
-          {/* Title */}
-          <div className="flex items-start gap-3 pb-4">
+      {/* Body — single column on mobile, two columns from md up */}
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto md:flex-row md:overflow-hidden">
+        {/* Left: card details */}
+        <div className="scrollbar-thin min-h-0 min-w-0 flex-1 md:overflow-y-auto">
+          <div className="p-6">
+            {/* Title */}
+            <div className="flex items-start gap-3 pb-4">
             <button
               type="button"
               onClick={() =>
@@ -288,177 +473,9 @@ export default function CardModalContent({ boardId, card, onClose }: Props) {
             />
           </div>
 
-          {/* Toolbar row */}
-          <div className="relative ml-6 flex flex-nowrap items-center gap-2 py-5">
-            {/* Add button — hosts Add menu; switches to Labels panel inline */}
-            <ToolbarButton
-              icon={Plus}
-              label="Add"
-              isOpen={
-                openToolbar === "add" ||
-                (openToolbar === "labels" && labelsFromAdd) ||
-                (openToolbar === "dates" && datesFromAdd)
-              }
-              onToggle={() => {
-                setLabelsFromAdd(false);
-                setDatesFromAdd(false);
-                toggleToolbar("add");
-              }}
-              onClose={closeToolbar}
-            >
-              {openToolbar === "labels" && labelsFromAdd ? (
-                <LabelsPanel
-                  boardId={boardId}
-                  card={card}
-                  isOpen
-                  showBack
-                  onBack={() => setOpenToolbar("add")}
-                  onClose={closeToolbar}
-                  onAssign={(labelId) =>
-                    void assignLabel({ cardId: card.id, payload: { labelId } })
-                  }
-                  onRemove={(labelId) =>
-                    void removeLabel({ cardId: card.id, labelId })
-                  }
-                />
-              ) : openToolbar === "dates" && datesFromAdd ? (
-                <DatesPanel
-                  card={card}
-                  onBack={() => setOpenToolbar("add")}
-                  onClose={closeToolbar}
-                  onSave={(payload) =>
-                    void updateCard({ cardId: card.id, payload }).then(
-                      closeToolbar,
-                    )
-                  }
-                  onRemove={() =>
-                    void updateCard({
-                      cardId: card.id,
-                      payload: {
-                        startDate: null,
-                        dueDate: null,
-                        dueTime: null,
-                      },
-                    }).then(closeToolbar)
-                  }
-                />
-              ) : (
-                <AddToCardMenu
-                  onClose={closeToolbar}
-                  onSelect={(key) => {
-                    if (key === "labels") {
-                      setLabelsFromAdd(true);
-                      setOpenToolbar("labels");
-                      return;
-                    }
-                    if (key === "dates") {
-                      setDatesFromAdd(true);
-                      setOpenToolbar("dates");
-                      return;
-                    }
-                    setLabelsFromAdd(false);
-                    setDatesFromAdd(false);
-                    setOpenToolbar(key);
-                  }}
-                />
-              )}
-            </ToolbarButton>
-
-            {/* Checklist */}
-            <ToolbarButton
-              icon={CheckSquare}
-              label="Checklist"
-              isOpen={openToolbar === "checklist"}
-              onToggle={() => toggleToolbar("checklist")}
-              onClose={closeToolbar}
-            >
-              <div className="w-60 space-y-2 p-3">
-                <p className="text-xs font-semibold text-trello-slate">
-                  Add checklist
-                </p>
-                <Input
-                  value={newChecklistTitle}
-                  onChange={(e) => setNewChecklistTitle(e.target.value)}
-                  placeholder="Checklist"
-                  className="bg-trello-card-background text-sm"
-                />
-                <Button
-                  variant="trello"
-                  size="sm"
-                  className="w-full"
-                  onClick={() =>
-                    void createChecklist({
-                      cardId: card.id,
-                      payload: {
-                        title: newChecklistTitle.trim() || "Checklist",
-                      },
-                    }).then(closeToolbar)
-                  }
-                >
-                  Add
-                </Button>
-              </div>
-            </ToolbarButton>
-          </div>
-
-          {/* Members inline panel */}
-          {openToolbar === "members" && (
-            <div className="relative -mt-3 mb-5">
-              <div className="w-fit rounded-lg border border-trello-ink-md bg-trello-card-background shadow-md">
-                <div className="w-60 py-1">
-                  <p className="px-3 py-1.5 text-xs font-semibold text-trello-slate">
-                    Members
-                  </p>
-                  {data.members.map((member) => {
-                    const assigned = card.members.some(
-                      (m) => m.id === member.userId,
-                    );
-                    return (
-                      <Button
-                        key={member.userId}
-                        variant="ghost"
-                        className="h-auto w-full justify-start gap-2 rounded-none px-3 py-2"
-                        onClick={() =>
-                          assigned
-                            ? void removeMember({
-                                cardId: card.id,
-                                memberId: member.userId,
-                              })
-                            : void assignMember({
-                                cardId: card.id,
-                                payload: { memberId: member.userId },
-                              })
-                        }
-                      >
-                        <MemberAvatar user={member.user} />
-                        <span className="flex-1 text-left text-trello-navy">
-                          {member.user.name}
-                        </span>
-                        {assigned && (
-                          <span className="text-xs text-trello-blue">✓</span>
-                        )}
-                      </Button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Attachment inline panel */}
-          {openToolbar === "attachment" && (
-            <div className="relative -mt-3 mb-5">
-              <div className="w-fit rounded-lg border border-trello-ink-md bg-trello-card-background p-3 shadow-md">
-                <p className="mb-2 text-xs font-semibold text-trello-slate">
-                  Attach a link
-                </p>
-                <Input
-                  placeholder="Paste a link…"
-                  className="w-60 bg-trello-card-background text-sm"
-                />
-              </div>
-            </div>
-          )}
+          {/* Toolbar — always in the main column */}
+          {renderToolbar()}
+          {renderAttachmentPanel("-mt-3 mb-5")}
 
           {/* Labels section */}
           <div className="mb-5">
@@ -533,29 +550,42 @@ export default function CardModalContent({ boardId, card, onClose }: Props) {
               </p>
               <div className="flex flex-wrap items-center gap-1">
                 {card.members.map((member) => (
-                  <button
-                    key={member.id}
-                    type="button"
-                    title={`Remove ${member.name}`}
-                    onClick={() =>
-                      void removeMember({
-                        cardId: card.id,
-                        memberId: member.id,
-                      })
-                    }
-                  >
-                    <MemberAvatar user={member} size="md" />
-                  </button>
+                  <MemberAvatar key={member.id} user={member} size="md" />
                 ))}
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={() => toggleToolbar("members")}
-                  className="rounded-full bg-trello-ink-xs text-trello-slate hover:bg-trello-ink-lg"
-                  aria-label="Add member"
+                <Popover
+                  open={membersBodyOpen}
+                  onOpenChange={(open) => {
+                    if (open) {
+                      // close the toolbar chip popover before opening body popover
+                      setOpenToolbar(null);
+                      setMembersFromAdd(false);
+                    }
+                    setMembersBodyOpen(open);
+                  }}
                 >
-                  <Plus className="size-3.5" />
-                </Button>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      className="rounded-full bg-trello-ink-xs text-trello-slate hover:bg-trello-ink-lg"
+                      aria-label="Add member"
+                    >
+                      <Plus className="size-3.5" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    align="start"
+                    className="w-72 border-trello-ink-md bg-trello-card-background p-0 shadow-lg"
+                  >
+                    <MembersPanel
+                      boardMembers={data.members}
+                      cardMembers={card.members}
+                      onClose={() => setMembersBodyOpen(false)}
+                      onAssign={handleAssignMember}
+                      onRemove={handleRemoveMember}
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
           )}
@@ -750,12 +780,20 @@ export default function CardModalContent({ boardId, card, onClose }: Props) {
               />
             ))}
           </div>
+
+          {/* Mobile activity */}
+          <div className="mt-6 pt-2 md:hidden">
+            <CardModalActivity boardId={boardId} card={card} />
+          </div>
+          </div>
         </div>
 
-        {/* RIGHT: activity */}
-        <div className="scrollbar-thin shrink-0 overflow-y-auto border-t border-trello-ink-md px-5 pb-8 pt-4 md:border-l md:border-t-0 md:pt-2">
-          <CardModalActivity boardId={boardId} card={card} />
-        </div>
+        {/* Right sidebar: activity only (md+) */}
+        <aside className="hidden shrink-0 flex-col border-t border-trello-ink-sm md:flex md:w-[340px] md:border-l md:border-t-0">
+          <div className="scrollbar-thin flex min-h-0 flex-1 flex-col overflow-y-auto p-5">
+            <CardModalActivity boardId={boardId} card={card} />
+          </div>
+        </aside>
       </div>
     </div>
   );

@@ -20,7 +20,10 @@ export class LabelService {
       throw new AppError("Label not found", HTTP_STATUS.NOT_FOUND);
     }
     await boardService.assertBoardAccess(label.boardId, userId, "MEMBER");
-    const updated = await labelRepository.update(labelId, input);
+    const updated = await labelRepository.update(labelId, {
+      ...(input.name !== undefined ? { name: input.name } : {}),
+      ...(input.color !== undefined ? { color: input.color } : {}),
+    });
     return toLabelResponse(updated);
   }
 
@@ -43,11 +46,11 @@ export class LabelService {
 
     await activityService.log({
       type: "LABEL_ADDED",
-      message: `Label "${label.name}" was added to "${card.title}"`,
+      message: `added the "${label.name}" label to this card`,
       boardId: card.list.boardId,
       cardId,
       userId,
-      metadata: { labelId: input.labelId },
+      metadata: { labelId: input.labelId, labelName: label.name, labelColor: label.color },
     });
 
     return assignment;
@@ -68,11 +71,11 @@ export class LabelService {
 
     await activityService.log({
       type: "LABEL_REMOVED",
-      message: `Label "${label?.name ?? "Label"}" was removed from "${card.title}"`,
+      message: `removed the "${label?.name ?? "label"}" label from this card`,
       boardId: card.list.boardId,
       cardId,
       userId,
-      metadata: { labelId },
+      metadata: { labelId, labelName: label?.name ?? null },
     });
   }
 }

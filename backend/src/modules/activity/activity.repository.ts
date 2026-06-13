@@ -49,6 +49,27 @@ export class ActivityRepository {
     });
   }
 
+  async findByCardId(cardId: string, limit: number, offset: number) {
+    const where = { cardId };
+
+    const [activities, total] = await Promise.all([
+      prisma.activity.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip: offset,
+        take: limit,
+        include: {
+          user: {
+            select: { id: true, name: true, email: true, avatarUrl: true },
+          },
+        },
+      }),
+      prisma.activity.count({ where }),
+    ]);
+
+    return { activities, total };
+  }
+
   async findForUser(userId: string, limit: number, offset: number) {
     const accessibleBoards = await prisma.board.findMany({
       where: accessibleBoardsWhere(userId),

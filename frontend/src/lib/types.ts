@@ -376,6 +376,8 @@ export type CREATE_CHECKLIST_ITEM_PAYLOAD = {
 export type UPDATE_CHECKLIST_ITEM_PAYLOAD = {
   title?: string;
   isCompleted?: boolean;
+  assignedToId?: string | null;
+  dueDate?: string | null;
 };
 
 export type CREATE_COMMENT_PAYLOAD = {

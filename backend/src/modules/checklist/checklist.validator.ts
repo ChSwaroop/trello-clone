@@ -24,6 +24,11 @@ export const checklistItemIdParamSchema = z.object({
   itemId: z.uuid(),
 });
 
+export const checklistIdParamSchema = z.object({
+  checklistId: z.uuid(),
+});
+
 export type CreateChecklistInput = z.infer<typeof createChecklistSchema>;
 export type CreateChecklistItemInput = z.infer<typeof createChecklistItemSchema>;
 export type UpdateChecklistItemInput = z.infer<typeof updateChecklistItemSchema>;
+export type ChecklistIdParam = z.infer<typeof checklistIdParamSchema>;

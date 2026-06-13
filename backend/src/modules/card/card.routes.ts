@@ -25,6 +25,7 @@ import {
   searchCardsQuerySchema,
   updateCardSchema,
 } from "./card.validator.js";
+import { getActivitiesQuerySchema } from "../activity/activity.validator.js";
 
 const cardRoutes = Router();
 
@@ -37,6 +38,11 @@ cardRoutes.get(
   "/filter",
   validateRequest({ query: filterCardsQuerySchema }),
   cardController.filterCards,
+);
+cardRoutes.get(
+  "/:cardId/activities",
+  validateRequest({ params: cardParamSchema, query: getActivitiesQuerySchema }),
+  cardController.getCardActivities,
 );
 cardRoutes.post("/", validateRequest({ body: createCardSchema }), cardController.createCard);
 cardRoutes.patch("/move", validateRequest({ body: moveCardSchema }), cardController.moveCard);

@@ -1,10 +1,12 @@
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import type { ACTIVITIES_RESPONSE } from "@/lib/types";
 
 const PAGE_SIZE = 20;
 
 export default function useActivity() {
+  const queryClient = useQueryClient();
+
   const useGetActivities = () =>
     useInfiniteQuery({
       queryKey: ["get-activities"],
@@ -20,5 +22,21 @@ export default function useActivity() {
         lastPage.hasMore ? lastPageParam + PAGE_SIZE : undefined,
     });
 
-  return { useGetActivities };
+  const useGetCardActivities = (cardId: string) =>
+    useQuery({
+      queryKey: ["get-card-activities", cardId],
+      queryFn: async () => {
+        const { data } = await api.get<{ success: true; data: ACTIVITIES_RESPONSE }>(
+          `/cards/${cardId}/activities`,
+          { params: { limit: 50, offset: 0 } },
+        );
+        return data.data;
+      },
+      enabled: !!cardId,
+    });
+
+  const invalidateCardActivities = (cardId: string) =>
+    queryClient.invalidateQueries({ queryKey: ["get-card-activities", cardId] });
+
+  return { useGetActivities, useGetCardActivities, invalidateCardActivities };
 }

@@ -3,23 +3,47 @@ import { formatDistanceToNow } from "date-fns";
 import { MessageSquare } from "lucide-react";
 import MemberAvatar from "@/components/molecules/member-avatar";
 import { Button } from "@/components/ui/button";
-import useBoards from "@/hooks/apis/use-boards";
+import useAuth from "@/hooks/apis/use-auth";
 import useCardExtras from "@/hooks/apis/use-card-extras";
 import useActivity from "@/hooks/apis/use-activity";
 import type { ACTIVITY_ITEM, CARD_WITH_RELATIONS, COMMENT } from "@/lib/types";
+import { formatDatesBadge } from "@/lib/utils";
 
 type Props = {
   boardId: string;
   card: CARD_WITH_RELATIONS;
 };
 
+type TimelineEntry =
+  | { kind: "comment"; createdAt: string; comment: COMMENT }
+  | { kind: "activity"; createdAt: string; activity: ACTIVITY_ITEM };
+
+const COMMENT_ACTIVITY_TYPES = new Set([
+  "COMMENT_CREATED",
+  "COMMENT_UPDATED",
+  "COMMENT_DELETED",
+]);
+
+const CARD_VISIBLE_ACTIVITY_TYPES = new Set([
+  "MEMBER_ASSIGNED",
+  "MEMBER_UNASSIGNED",
+  "CHECKLIST_UPDATED",
+  "CHECKLIST_CREATED",
+  "DUE_DATE_SET",
+  "DUE_DATE_CLEARED",
+  "LABEL_ADDED",
+  "LABEL_REMOVED",
+  "ATTACHMENT_ADDED",
+  "ATTACHMENT_REMOVED",
+]);
+
 export default function CardModalActivity({ boardId, card }: Props) {
-  const { useGetBoardDetails } = useBoards();
-  const { data } = useGetBoardDetails(boardId);
+  const { useGetCurrentUser } = useAuth();
+  const { data: currentUser } = useGetCurrentUser();
   const { useCreateComment, useUpdateComment, useDeleteComment } =
     useCardExtras(boardId);
-  const { useGetActivities } = useActivity();
-  const { data: activityData } = useGetActivities();
+  const { useGetCardActivities } = useActivity();
+  const { data: activityData, isLoading } = useGetCardActivities(card.id);
 
   const { mutateAsync: createComment } = useCreateComment();
   const { mutateAsync: updateComment } = useUpdateComment();
@@ -31,17 +55,37 @@ export default function CardModalActivity({ boardId, card }: Props) {
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
 
-  const currentUser = data.members[0]?.user;
+  const cardActivities = useMemo(
+    () =>
+      (activityData?.activities ?? []).filter(
+        (activity) =>
+          CARD_VISIBLE_ACTIVITY_TYPES.has(activity.type) &&
+          !COMMENT_ACTIVITY_TYPES.has(activity.type),
+      ),
+    [activityData],
+  );
 
-  const cardActivities = useMemo(() => {
-    const activities =
-      activityData?.pages.flatMap((page) => page.activities) ?? [];
-    return activities.filter(
-      (activity) =>
-        activity.card?.id === card.id &&
-        !activity.type.startsWith("COMMENT_"),
+  const timeline = useMemo(() => {
+    const entries: TimelineEntry[] = [
+      ...(card.comments ?? []).map((comment) => ({
+        kind: "comment" as const,
+        createdAt: comment.createdAt,
+        comment,
+      })),
+      ...(!hideDetails
+        ? cardActivities.map((activity) => ({
+            kind: "activity" as const,
+            createdAt: activity.createdAt,
+            activity,
+          }))
+        : []),
+    ];
+
+    return entries.sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
-  }, [activityData, card.id]);
+  }, [card.comments, cardActivities, hideDetails]);
 
   const handleSubmit = async () => {
     const content = commentText.trim();
@@ -74,71 +118,86 @@ export default function CardModalActivity({ boardId, card }: Props) {
           </span>
         </div>
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
-          className="h-auto px-2 py-1 text-xs text-trello-slate hover:bg-trello-ink-lg"
+          className="h-7 border-trello-ink-md bg-trello-ink-xs px-2.5 text-xs font-normal text-trello-slate hover:bg-trello-ink-lg"
           onClick={() => setHideDetails((prev) => !prev)}
         >
           {hideDetails ? "Show details" : "Hide details"}
         </Button>
       </div>
 
-      {/* Comment input — simple textarea like Trello */}
-      <div className="mb-5">
-        <textarea
-          value={commentText}
-          onChange={(e) => setCommentText(e.target.value)}
-          onFocus={() => setIsCommentFocused(true)}
-          onBlur={() => {
-            if (!commentText.trim()) setIsCommentFocused(false);
-          }}
-          placeholder="Write a comment…"
-          className="min-h-[56px] w-full resize-none rounded-lg border border-trello-ink-md bg-trello-ink-xs px-3 py-2.5 text-sm text-trello-navy shadow-sm outline-none transition-colors placeholder:text-trello-muted focus:border-trello-focus focus:bg-trello-card-background"
-          rows={2}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              void handleSubmit();
-            }
-          }}
-        />
-        {(isCommentFocused || commentText.trim()) && (
-          <Button
-            variant="trello"
-            size="sm"
-            disabled={!commentText.trim()}
-            className="mt-2"
-            onClick={() => void handleSubmit()}
-          >
-            Save
-          </Button>
+      <div className="mb-5 flex gap-2">
+        {currentUser ? (
+          <MemberAvatar
+            user={currentUser}
+            size="md"
+            className="mt-1 shrink-0 border-trello-blue bg-trello-blue text-white"
+          />
+        ) : (
+          <div className="mt-1 size-8 shrink-0 rounded-full bg-trello-blue" />
         )}
+        <div className="min-w-0 flex-1">
+          <textarea
+            value={commentText}
+            onChange={(e) => setCommentText(e.target.value)}
+            onFocus={() => setIsCommentFocused(true)}
+            onBlur={() => {
+              if (!commentText.trim()) setIsCommentFocused(false);
+            }}
+            placeholder="Write a comment…"
+            className="min-h-[56px] w-full resize-none rounded-lg border border-trello-ink-md bg-trello-ink-xs px-3 py-2.5 text-sm text-trello-navy shadow-sm outline-none transition-colors placeholder:text-trello-muted focus:border-trello-focus focus:bg-trello-card-background"
+            rows={2}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                void handleSubmit();
+              }
+            }}
+          />
+          {(isCommentFocused || commentText.trim()) && (
+            <Button
+              variant="trello"
+              size="sm"
+              disabled={!commentText.trim()}
+              className="mt-2"
+              onClick={() => void handleSubmit()}
+            >
+              Save
+            </Button>
+          )}
+        </div>
       </div>
 
-      {/* Feed */}
       <div className="space-y-4">
-        {(card.comments ?? []).map((comment) => (
-          <CommentItem
-            key={comment.id}
-            comment={comment}
-            isEditing={editingCommentId === comment.id}
-            editingText={editingText}
-            onEditingTextChange={setEditingText}
-            onStartEdit={() => startEditing(comment)}
-            onSaveEdit={() => void saveEdit(comment.id)}
-            onCancelEdit={() => {
-              setEditingCommentId(null);
-              setEditingText("");
-            }}
-            onDelete={() => void deleteComment(comment.id)}
-            canEdit={currentUser?.id === comment.user.id}
-          />
-        ))}
-
-        {!hideDetails &&
-          cardActivities.map((activity) => (
-            <ActivityLogItem key={activity.id} activity={activity} />
-          ))}
+        {isLoading && timeline.length === 0 ? (
+          <p className="text-sm text-trello-muted">Loading activity…</p>
+        ) : (
+          timeline.map((entry) =>
+            entry.kind === "comment" ? (
+              <CommentItem
+                key={`comment-${entry.comment.id}`}
+                comment={entry.comment}
+                isEditing={editingCommentId === entry.comment.id}
+                editingText={editingText}
+                onEditingTextChange={setEditingText}
+                onStartEdit={() => startEditing(entry.comment)}
+                onSaveEdit={() => void saveEdit(entry.comment.id)}
+                onCancelEdit={() => {
+                  setEditingCommentId(null);
+                  setEditingText("");
+                }}
+                onDelete={() => void deleteComment(entry.comment.id)}
+                canEdit={currentUser?.id === entry.comment.user.id}
+              />
+            ) : (
+              <ActivityLogItem
+                key={`activity-${entry.activity.id}`}
+                activity={entry.activity}
+              />
+            ),
+          )
+        )}
       </div>
     </div>
   );
@@ -177,11 +236,14 @@ function CommentItem({
           <span className="text-xs font-bold uppercase text-trello-navy">
             {comment.user.name}
           </span>
-          <span className="text-[10px] text-trello-muted">
+          <button
+            type="button"
+            className="text-[11px] text-trello-blue underline-offset-2 hover:underline"
+          >
             {formatDistanceToNow(new Date(comment.createdAt), {
               addSuffix: true,
             })}
-          </span>
+          </button>
         </div>
         {isEditing ? (
           <div className="space-y-2">
@@ -248,18 +310,134 @@ function ActivityLogItem({ activity }: { activity: ACTIVITY_ITEM }) {
         </div>
       )}
       <div className="min-w-0 flex-1">
-        <p className="text-sm leading-relaxed text-trello-navy">
+        <p className="text-sm leading-relaxed">
           {actor ? (
-            <span className="font-bold uppercase">{actor.name} </span>
+            <span className="font-bold uppercase text-trello-navy">
+              {actor.name}{" "}
+            </span>
           ) : null}
-          <span className="text-trello-slate">{activity.message}</span>
+          <ActivityAction activity={activity} />
         </p>
-        <p className="mt-0.5 text-[10px] text-trello-muted">
+        <button
+          type="button"
+          className="mt-0.5 text-[11px] text-trello-blue underline-offset-2 hover:underline"
+        >
           {formatDistanceToNow(new Date(activity.createdAt), {
             addSuffix: true,
           })}
-        </p>
+        </button>
       </div>
     </div>
   );
+}
+
+function ActivityAction({ activity }: { activity: ACTIVITY_ITEM }) {
+  const meta = activity.metadata ?? {};
+
+  switch (activity.type) {
+    case "MEMBER_ASSIGNED":
+      return <span className="text-trello-slate">joined this card</span>;
+    case "MEMBER_UNASSIGNED":
+      return <span className="text-trello-slate">left this card</span>;
+    case "CHECKLIST_UPDATED": {
+      const itemTitle = String(meta.itemTitle ?? meta.title ?? "an item");
+      if (meta.isCompleted === true) {
+        return (
+          <span className="text-trello-slate">
+            completed{" "}
+            <span className="font-normal text-trello-navy">{itemTitle}</span> on
+            this card
+          </span>
+        );
+      }
+      if (meta.isCompleted === false) {
+        return (
+          <span className="text-trello-slate">
+            marked{" "}
+            <span className="font-normal text-trello-navy">{itemTitle}</span> as
+            incomplete on this card
+          </span>
+        );
+      }
+      break;
+    }
+    case "CHECKLIST_CREATED":
+      return (
+        <span className="text-trello-slate">
+          added checklist{" "}
+          <span className="font-normal text-trello-navy">
+            {String(meta.checklistTitle ?? activity.message)}
+          </span>{" "}
+          to this card
+        </span>
+      );
+    case "DUE_DATE_SET": {
+      const dueDate = meta.dueDate as string | undefined;
+      const dueTime = meta.dueTime as string | undefined;
+      const formatted = dueDate
+        ? formatDatesBadge(undefined, dueDate, dueTime ?? undefined)
+        : "a new date";
+      const action = meta.action === "changed" ? "changed" : "set";
+      if (action === "changed") {
+        return (
+          <span className="text-trello-slate">
+            changed the due date of this card to{" "}
+            <span className="font-normal text-trello-navy">{formatted}</span>
+          </span>
+        );
+      }
+      return (
+        <span className="text-trello-slate">
+          set this card to be due{" "}
+          <span className="font-normal text-trello-navy">{formatted}</span>
+        </span>
+      );
+    }
+    case "DUE_DATE_CLEARED":
+      return (
+        <span className="text-trello-slate">
+          removed the due date from this card
+        </span>
+      );
+    case "LABEL_ADDED":
+      return (
+        <span className="text-trello-slate">
+          added the{" "}
+          <span className="font-normal text-trello-navy">
+            {String(meta.labelName ?? "label")}
+          </span>{" "}
+          label to this card
+        </span>
+      );
+    case "LABEL_REMOVED":
+      return (
+        <span className="text-trello-slate">
+          removed the{" "}
+          <span className="font-normal text-trello-navy">
+            {String(meta.labelName ?? "label")}
+          </span>{" "}
+          label from this card
+        </span>
+      );
+    case "ATTACHMENT_ADDED":
+      return (
+        <span className="text-trello-slate">
+          attached{" "}
+          <span className="font-normal text-trello-navy">
+            {String(meta.fileName ?? "a file")}
+          </span>{" "}
+          to this card
+        </span>
+      );
+    case "ATTACHMENT_REMOVED":
+      return (
+        <span className="text-trello-slate">
+          removed an attachment from this card
+        </span>
+      );
+    default:
+      break;
+  }
+
+  return <span className="text-trello-slate">{activity.message}</span>;
 }

@@ -14,6 +14,10 @@ type Props = {
   onToggle: () => void;
   onClose: () => void;
   active?: boolean;
+  /** Popover opens toward the sidebar edge on desktop two-column layout. */
+  popoverSide?: "left" | "right" | "top" | "bottom";
+  /** Full-width stacked buttons in the right sidebar. */
+  sidebar?: boolean;
 };
 
 export default function ToolbarButton({
@@ -24,6 +28,8 @@ export default function ToolbarButton({
   onToggle,
   onClose,
   active,
+  popoverSide = "right",
+  sidebar = false,
 }: Props) {
   return (
     <Popover
@@ -36,6 +42,7 @@ export default function ToolbarButton({
           size="sm"
           className={cn(
             "h-8 gap-1.5 rounded-sm bg-trello-ink-sm px-3 hover:bg-trello-ink-lg cursor-pointer",
+            sidebar && "h-9 w-full justify-start",
             active && "bg-trello-ink-md",
           )}
         >
@@ -46,7 +53,7 @@ export default function ToolbarButton({
       <PopoverContent
         align="start"
         className="w-72 border-trello-ink-md bg-trello-card-background p-0 shadow-lg"
-        side="right"
+        side={popoverSide}
       >
         {children}
       </PopoverContent>
