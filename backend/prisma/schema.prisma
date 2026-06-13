@@ -40,6 +40,25 @@ enum AttachmentKind {
   LINK
 }
 
+enum CardRecurring {
+  NEVER
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+enum DueDateReminder {
+  NONE
+  AT_DUE_DATE
+  FIVE_MINUTES
+  FIFTEEN_MINUTES
+  ONE_HOUR
+  TWO_HOURS
+  ONE_DAY
+  TWO_DAYS
+}
+
 enum ActivityType {
   BOARD_CREATED
   BOARD_UPDATED
@@ -225,7 +244,10 @@ model Card {
   description       String?
   startDate         DateTime?
   dueDate           DateTime?
-  dueComplete       Boolean    @default(false)
+  dueTime           String?
+  dueComplete       Boolean          @default(false)
+  recurring         CardRecurring    @default(NEVER)
+  dueDateReminder   DueDateReminder  @default(NONE)
   coverColor        String?
   coverAttachmentId String?    @unique
   position          Int

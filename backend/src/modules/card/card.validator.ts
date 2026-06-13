@@ -6,12 +6,18 @@ export const createCardSchema = z.object({
   position: z.number().int().min(0).optional(),
 });
 
+const cardRecurringEnum = z.enum(["NEVER", "DAILY", "WEEKLY", "MONTHLY", "YEARLY"]);
+const dueDateReminderEnum = z.enum(["NONE", "AT_DUE_DATE", "FIVE_MINUTES", "FIFTEEN_MINUTES", "ONE_HOUR", "TWO_HOURS", "ONE_DAY", "TWO_DAYS"]);
+
 export const updateCardSchema = z.object({
   title: z.string().min(1).max(255).optional(),
   description: z.string().max(5000).optional(),
   startDate: z.iso.datetime().optional().nullable(),
   dueDate: z.iso.datetime().optional().nullable(),
+  dueTime: z.string().max(10).optional().nullable(),
   dueComplete: z.boolean().optional(),
+  recurring: cardRecurringEnum.optional(),
+  dueDateReminder: dueDateReminderEnum.optional(),
   coverColor: z.string().max(20).optional().nullable(),
   coverAttachmentId: z.uuid().optional().nullable(),
 });

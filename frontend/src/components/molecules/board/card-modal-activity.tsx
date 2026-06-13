@@ -1,17 +1,6 @@
 import { useMemo, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import {
-  Bold,
-  CircleHelp,
-  Italic,
-  List,
-  MessageSquare,
-  MoreHorizontal,
-  Palette,
-  Paperclip,
-  Plus,
-  Type,
-} from "lucide-react";
+import { MessageSquare } from "lucide-react";
 import MemberAvatar from "@/components/molecules/member-avatar";
 import { Button } from "@/components/ui/button";
 import useBoards from "@/hooks/apis/use-boards";
@@ -38,6 +27,7 @@ export default function CardModalActivity({ boardId, card }: Props) {
 
   const [commentText, setCommentText] = useState("");
   const [hideDetails, setHideDetails] = useState(false);
+  const [isCommentFocused, setIsCommentFocused] = useState(false);
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
 
@@ -58,6 +48,7 @@ export default function CardModalActivity({ boardId, card }: Props) {
     if (!content) return;
     await createComment({ cardId: card.id, payload: { content } });
     setCommentText("");
+    setIsCommentFocused(false);
   };
 
   const startEditing = (comment: COMMENT) => {
@@ -92,33 +83,36 @@ export default function CardModalActivity({ boardId, card }: Props) {
         </Button>
       </div>
 
-      {/* Comment editor */}
+      {/* Comment input — simple textarea like Trello */}
       <div className="mb-5">
-        <div className="overflow-hidden rounded-lg border border-trello-ink-md bg-trello-card-background">
-          <CommentToolbar />
-          <textarea
-            value={commentText}
-            onChange={(e) => setCommentText(e.target.value)}
-            placeholder="Write a comment…"
-            className="min-h-[72px] w-full resize-none bg-transparent px-3 py-2 text-sm text-trello-navy outline-none placeholder:text-trello-muted"
-            rows={3}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                void handleSubmit();
-              }
-            }}
-          />
-        </div>
-        <Button
-          variant="trello"
-          size="sm"
-          disabled={!commentText.trim()}
-          className="mt-2"
-          onClick={() => void handleSubmit()}
-        >
-          Save
-        </Button>
+        <textarea
+          value={commentText}
+          onChange={(e) => setCommentText(e.target.value)}
+          onFocus={() => setIsCommentFocused(true)}
+          onBlur={() => {
+            if (!commentText.trim()) setIsCommentFocused(false);
+          }}
+          placeholder="Write a comment…"
+          className="min-h-[56px] w-full resize-none rounded-lg border border-trello-ink-md bg-trello-ink-xs px-3 py-2.5 text-sm text-trello-navy shadow-sm outline-none transition-colors placeholder:text-trello-muted focus:border-trello-focus focus:bg-trello-card-background"
+          rows={2}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              void handleSubmit();
+            }
+          }}
+        />
+        {(isCommentFocused || commentText.trim()) && (
+          <Button
+            variant="trello"
+            size="sm"
+            disabled={!commentText.trim()}
+            className="mt-2"
+            onClick={() => void handleSubmit()}
+          >
+            Save
+          </Button>
+        )}
       </div>
 
       {/* Feed */}
@@ -146,35 +140,6 @@ export default function CardModalActivity({ boardId, card }: Props) {
             <ActivityLogItem key={activity.id} activity={activity} />
           ))}
       </div>
-    </div>
-  );
-}
-
-function CommentToolbar() {
-  const tools = [
-    { icon: Type, label: "Text style" },
-    { icon: Bold, label: "Bold" },
-    { icon: Italic, label: "Italic" },
-    { icon: MoreHorizontal, label: "More" },
-    { icon: List, label: "List" },
-    { icon: Plus, label: "Insert" },
-    { icon: Palette, label: "Color" },
-    { icon: Paperclip, label: "Attach" },
-    { icon: CircleHelp, label: "Help" },
-  ];
-
-  return (
-    <div className="flex flex-wrap items-center gap-0.5 border-b border-trello-ink-md px-2 py-1.5">
-      {tools.map(({ icon: Icon, label }) => (
-        <button
-          key={label}
-          type="button"
-          aria-label={label}
-          className="rounded p-1 text-trello-slate transition-colors hover:bg-trello-ink-sm"
-        >
-          <Icon className="size-3.5" />
-        </button>
-      ))}
     </div>
   );
 }

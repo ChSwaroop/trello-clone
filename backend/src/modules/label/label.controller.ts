@@ -5,7 +5,7 @@ import { asyncHandler } from "../../shared/utils/async-handler.js";
 import { getRouteParam } from "../../shared/utils/route-params.js";
 import { sendSuccess } from "../../shared/utils/response.js";
 import { labelService } from "./label.service.js";
-import type { AssignLabelInput, CreateLabelInput } from "./label.validator.js";
+import type { AssignLabelInput, CreateLabelInput, UpdateLabelInput } from "./label.validator.js";
 
 export class LabelController {
   createLabel = asyncHandler(async (req: Request, res: Response) => {
@@ -16,6 +16,19 @@ export class LabelController {
     const input = req.body as CreateLabelInput;
     const label = await labelService.createLabel(input, req.user.id);
     sendSuccess(res, label, HTTP_STATUS.CREATED);
+  });
+
+  updateLabel = asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) {
+      throw new AppError("Authentication required", HTTP_STATUS.UNAUTHORIZED);
+    }
+    const input = req.body as UpdateLabelInput;
+    const label = await labelService.updateLabel(
+      getRouteParam(req, "labelId"),
+      input,
+      req.user.id,
+    );
+    sendSuccess(res, label);
   });
 
   assignLabelToCard = asyncHandler(async (req: Request, res: Response) => {

@@ -5,13 +5,23 @@ import { activityService } from "../activity/activity.service.js";
 import { boardService } from "../board/board.service.js";
 import { cardRepository } from "../card/card.repository.js";
 import { labelRepository } from "./label.repository.js";
-import type { AssignLabelInput, CreateLabelInput } from "./label.validator.js";
+import type { AssignLabelInput, CreateLabelInput, UpdateLabelInput } from "./label.validator.js";
 
 export class LabelService {
   async createLabel(input: CreateLabelInput, userId: string) {
     await boardService.assertBoardAccess(input.boardId, userId, "MEMBER");
     const label = await labelRepository.create(input.boardId, input.name, input.color);
     return toLabelResponse(label);
+  }
+
+  async updateLabel(labelId: string, input: UpdateLabelInput, userId: string) {
+    const label = await labelRepository.findById(labelId);
+    if (!label) {
+      throw new AppError("Label not found", HTTP_STATUS.NOT_FOUND);
+    }
+    await boardService.assertBoardAccess(label.boardId, userId, "MEMBER");
+    const updated = await labelRepository.update(labelId, input);
+    return toLabelResponse(updated);
   }
 
   async assignLabelToCard(cardId: string, input: AssignLabelInput, userId: string) {

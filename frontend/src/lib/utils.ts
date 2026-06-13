@@ -72,6 +72,30 @@ export function formatDueDate(dueDate: string) {
   }).format(new Date(dueDate));
 }
 
+export function formatDatesBadge(
+  startDate?: string,
+  dueDate?: string,
+  dueTime?: string,
+): string {
+  const fmtShort = (iso: string) =>
+    new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(
+      new Date(iso),
+    );
+
+  const timePart = dueTime
+    ? (() => {
+        const [h, m] = dueTime.split(":").map(Number);
+        const ampm = h >= 12 ? "PM" : "AM";
+        return `, ${h % 12 || 12}:${String(m).padStart(2, "0")} ${ampm}`;
+      })()
+    : "";
+
+  if (startDate && dueDate) return `${fmtShort(startDate)} - ${fmtShort(dueDate)}${timePart}`;
+  if (dueDate) return `${fmtShort(dueDate)}${timePart}`;
+  if (startDate) return `${fmtShort(startDate)} → …`;
+  return "";
+}
+
 export function cardMatchesFilters(
   card: CARD_WITH_RELATIONS,
   filters: BOARD_FILTERS,

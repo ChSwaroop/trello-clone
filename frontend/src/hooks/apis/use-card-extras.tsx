@@ -15,6 +15,7 @@ import type {
   COMMENT,
   LABEL,
   UPDATE_CHECKLIST_ITEM_PAYLOAD,
+  UPDATE_LABEL_PAYLOAD,
   USER,
 } from "@/lib/types";
 
@@ -40,6 +41,29 @@ export default function useCardExtras(boardId: string) {
         updateBoardCache((prev) => ({
           ...prev,
           labels: [...prev.labels, label],
+        }));
+      },
+      onError: (error) => toast.error(getApiErrorMessage(error)),
+    });
+
+  const useUpdateLabel = () =>
+    useMutation({
+      mutationKey: ["update-label", boardId],
+      mutationFn: async ({ labelId, payload }: { labelId: string; payload: UPDATE_LABEL_PAYLOAD }) => {
+        const { data } = await api.patch<API_SUCCESS<LABEL>>(`/labels/${labelId}`, payload);
+        return data.data;
+      },
+      onSuccess: (updated) => {
+        updateBoardCache((prev) => ({
+          ...prev,
+          labels: prev.labels.map((l) => (l.id === updated.id ? updated : l)),
+          lists: prev.lists.map((list) => ({
+            ...list,
+            cards: list.cards.map((card) => ({
+              ...card,
+              labels: card.labels.map((l) => (l.id === updated.id ? updated : l)),
+            })),
+          })),
         }));
       },
       onError: (error) => toast.error(getApiErrorMessage(error)),
@@ -370,6 +394,7 @@ export default function useCardExtras(boardId: string) {
 
   return {
     useCreateLabel,
+    useUpdateLabel,
     useAssignLabel,
     useRemoveLabel,
     useAssignMember,

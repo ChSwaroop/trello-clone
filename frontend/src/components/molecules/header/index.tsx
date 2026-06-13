@@ -6,12 +6,12 @@ import { LayoutGrid } from "lucide-react";
 
 export function AppHeader() {
   return (
-    <header className="sticky top-0 z-30 px-4 py-2.5 text-trello-nav-foreground shadow-sm">
+    <header className="sticky top-0 z-30 px-4 py-2.5 shadow-sm">
       <div className=" flex  items-center justify-between gap-4">
         <Link to="/home" className="flex items-center gap-2">
           {/* Back to boards */}
           <LayoutGrid className="size-4" />
-          <TrelloLogo className="size-7 text-trello-nav-foreground rounded-xl" />
+          <TrelloLogo className="size-7 rounded-xl" />
           <span className="text-sm font-bold text-muted-foreground">
             Trello
           </span>
@@ -20,7 +20,7 @@ export function AppHeader() {
         <div className="hidden max-w-4xl flex-1 md:block">
           <Input
             placeholder="Search"
-            className="border rounded-sm bg-board-glass text-trello-nav-foreground placeholder:text-trello-nav-foreground/70 focus-visible:border-trello-nav-foreground/40 focus-visible:ring-trello-nav-foreground/20"
+            className="border rounded-sm bg-board-glass"
           />
         </div>
 
