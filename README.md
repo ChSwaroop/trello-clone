@@ -174,20 +174,22 @@ npm run preview
 After running `npm run db:seed`, use any of these accounts. All share the same password.
 
 
-| Name            | Email                     | Password      |
-| --------------- | ------------------------- | ------------- |
-| Swaroop (owner) | `swaroopch1234@gmail.com` | `password123` |
-| John            | `john@example.com`        | `password123` |
-| Alice           | `alice@example.com`       | `password123` |
-
+| Name | Email | Password |
+|------|-------|----------|
+| Demo User (workspace owner) | `demo@example.com` | `password123` |
+| Swaroop | `swaroopch1234@gmail.com` | `password123` |
+| John | `john@example.com` | `password123` |
+| Alice | `alice@example.com` | `password123` |
 
 The seed script creates:
 
-- A **Personal** workspace with all three users
-- A starred board titled **Personal Project** with lists: Todo, In Progress, Review, Done
-- Sample cards, labels, checklists, comments, and activity entries
+- **Product Team** workspace with all four users
+- A starred board **Sprint Board — Q2 Launch** with 5 lists: Backlog, To Do, In Progress, Review, Done
+- **15 cards** (3 per list) with full details: descriptions, labels, members, dates, checklists, comments, and link attachments
+- **3 archived cards** (one each in Backlog, To Do, and In Progress)
+- Board-level labels, activity entries, and cover colors on select cards
 
-Log in as **Swaroop** to access the pre-seeded starred board immediately.
+Log in as **demo@example.com** for the richest pre-seeded board experience, or use any other account — all are board members.
 
 ---
 
