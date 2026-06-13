@@ -36,15 +36,16 @@ export default function CardModalActivity({ boardId, card }: Props) {
       {/* Section heading */}
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <AlignLeft className="size-4 text-[#44546f]" />
-          <span className="text-sm font-semibold text-[#172b4d]">Comments and activity</span>
+          <AlignLeft className="size-4 text-trello-slate" />
+          <span className="text-sm font-semibold text-trello-navy">Comments and activity</span>
         </div>
-        <button
-          type="button"
-          className="rounded px-2 py-1 text-xs font-medium text-[#44546f] hover:bg-[#091e4224]"
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-auto px-2 py-1 text-xs text-trello-slate hover:bg-trello-ink-lg"
         >
           Show details
-        </button>
+        </Button>
       </div>
 
       {/* Comment input row */}
@@ -52,7 +53,7 @@ export default function CardModalActivity({ boardId, card }: Props) {
         {currentUser ? (
           <MemberAvatar user={currentUser} size="md" className="mt-0.5 shrink-0" />
         ) : (
-          <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-[#dfe1e6] text-xs font-bold text-[#172b4d]">
+          <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-trello-subtle text-xs font-bold text-trello-navy">
             U
           </div>
         )}
@@ -63,10 +64,10 @@ export default function CardModalActivity({ boardId, card }: Props) {
             onFocus={() => setIsFocused(true)}
             placeholder="Write a comment…"
             className={cn(
-              "w-full resize-none rounded-lg bg-white px-3 py-2 text-sm text-[#172b4d] shadow-sm ring-1 outline-none placeholder:text-[#626f86] transition-[min-height]",
+              "w-full resize-none rounded-lg bg-white px-3 py-2 text-sm text-trello-navy shadow-sm ring-1 outline-none placeholder:text-trello-muted transition-[min-height]",
               isFocused
-                ? "min-h-[72px] ring-2 ring-[#388bff]"
-                : "min-h-[38px] cursor-pointer ring-[#091e4221] hover:ring-[#091e4280]",
+                ? "min-h-[72px] ring-2 ring-trello-focus"
+                : "min-h-[38px] cursor-pointer ring-trello-ink-md hover:ring-trello-ink-xl",
             )}
             rows={isFocused ? 3 : 1}
             onKeyDown={(e) => {
@@ -83,23 +84,24 @@ export default function CardModalActivity({ boardId, card }: Props) {
           {isFocused && (
             <div className="mt-2 flex items-center gap-2">
               <Button
+                variant="trello"
                 size="sm"
-                className="bg-[#0079bf] text-white hover:bg-[#026aa7]"
                 disabled={!commentText.trim()}
                 onClick={() => void handleSubmit()}
               >
                 Save
               </Button>
-              <button
-                type="button"
-                className="rounded p-1.5 text-[#44546f] hover:bg-[#091e4224]"
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="text-trello-slate hover:bg-trello-ink-lg"
                 onClick={() => {
                   setCommentText("");
                   setIsFocused(false);
                 }}
               >
                 <X className="size-4" />
-              </button>
+              </Button>
             </div>
           )}
         </div>
@@ -112,15 +114,15 @@ export default function CardModalActivity({ boardId, card }: Props) {
             <MemberAvatar user={comment.user} size="md" className="mt-0.5 shrink-0" />
             <div className="min-w-0 flex-1">
               <div className="mb-1 flex items-baseline gap-2">
-                <span className="text-xs font-bold text-[#172b4d]">{comment.user.name}</span>
-                <span className="text-[10px] text-[#626f86]">
+                <span className="text-xs font-bold text-trello-navy">{comment.user.name}</span>
+                <span className="text-[10px] text-trello-muted">
                   {new Date(comment.createdAt).toLocaleDateString("en-US", {
                     month: "short",
                     day: "numeric",
                   })}
                 </span>
               </div>
-              <p className="rounded-lg bg-white px-3 py-2 text-sm text-[#172b4d] shadow-sm ring-1 ring-[#091e4221]">
+              <p className="rounded-lg bg-white px-3 py-2 text-sm text-trello-navy shadow-sm ring-1 ring-trello-ink-md">
                 {comment.content}
               </p>
             </div>

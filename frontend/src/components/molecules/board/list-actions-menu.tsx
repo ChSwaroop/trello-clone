@@ -1,4 +1,6 @@
 import { X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 
 const LIST_COLORS = [
   { name: "Green", value: "#61bd4f" },
@@ -26,18 +28,19 @@ export default function ListActionsMenu({ onClose, onAddCard, onDeleteList }: Li
       <div className="fixed inset-0 z-10" onClick={onClose} />
 
       {/* Menu panel */}
-      <div className="absolute top-10 right-0 z-20 w-[304px] rounded-xl bg-white shadow-lg ring-1 ring-[#091e4221]">
+      <div className="absolute top-10 right-0 z-20 w-[304px] rounded-xl bg-white shadow-lg ring-1 ring-trello-ink-md">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[#091e4214] px-4 py-3">
-          <span className="text-sm font-semibold text-[#172b4d]">List actions</span>
-          <button
-            type="button"
+        <div className="flex items-center justify-between border-b border-trello-ink-sm px-4 py-3">
+          <span className="text-sm font-semibold text-trello-navy">List actions</span>
+          <Button
+            variant="ghost"
+            size="icon-sm"
             onClick={onClose}
-            className="rounded p-1 text-[#44546f] hover:bg-[#091e4214]"
+            className="text-trello-slate hover:bg-trello-ink-sm"
             aria-label="Close"
           >
             <X className="size-4" />
-          </button>
+          </Button>
         </div>
 
         {/* Primary actions */}
@@ -50,22 +53,24 @@ export default function ListActionsMenu({ onClose, onAddCard, onDeleteList }: Li
             { label: "Sort by…", onClick: onClose },
             { label: "Watch", onClick: onClose },
           ].map((item) => (
-            <button
+            <Button
               key={item.label}
-              type="button"
-              className="w-full px-4 py-2 text-left text-sm text-[#172b4d] hover:bg-[#f4f5f7]"
+              variant="ghost"
+              className="h-auto w-full justify-start rounded-none px-4 py-2 text-sm text-trello-navy hover:bg-trello-surface"
               onClick={item.onClick}
             >
               {item.label}
-            </button>
+            </Button>
           ))}
         </div>
 
+        <Separator className="bg-trello-ink-sm" />
+
         {/* List color */}
-        <div className="border-t border-[#091e4214] py-2">
+        <div className="py-2">
           <div className="flex items-center justify-between px-4 pb-1">
-            <span className="text-xs font-semibold text-[#172b4d]">Change list color</span>
-            <span className="rounded bg-[#0079bf] px-1.5 py-0.5 text-[10px] font-bold text-white">
+            <span className="text-xs font-semibold text-trello-navy">Change list color</span>
+            <span className="rounded bg-trello-blue px-1.5 py-0.5 text-[10px] font-bold text-white">
               PREMIUM
             </span>
           </div>
@@ -75,17 +80,19 @@ export default function ListActionsMenu({ onClose, onAddCard, onDeleteList }: Li
                 key={color.value}
                 type="button"
                 title={color.name}
-                className="size-8 rounded-md border-2 border-transparent ring-1 ring-[#091e4221] transition-transform hover:scale-110 hover:ring-[#172b4d]"
+                className="size-8 rounded-md border-2 border-transparent ring-1 ring-trello-ink-md transition-transform hover:scale-110 hover:ring-trello-navy"
                 style={{ backgroundColor: color.value }}
               />
             ))}
           </div>
         </div>
 
+        <Separator className="bg-trello-ink-sm" />
+
         {/* Automation */}
-        <div className="border-t border-[#091e4214] py-1">
+        <div className="py-1">
           <div className="px-4 py-2">
-            <span className="text-xs font-semibold text-[#172b4d]">Automation</span>
+            <span className="text-xs font-semibold text-trello-navy">Automation</span>
           </div>
           {[
             "When a card is added to the list",
@@ -93,36 +100,38 @@ export default function ListActionsMenu({ onClose, onAddCard, onDeleteList }: Li
             "Every Monday, sort list by…",
             "Create a rule",
           ].map((label) => (
-            <button
+            <Button
               key={label}
-              type="button"
-              className="w-full px-4 py-1.5 text-left text-sm text-[#172b4d] hover:bg-[#f4f5f7]"
+              variant="ghost"
+              className="h-auto w-full justify-start rounded-none px-4 py-1.5 text-sm text-trello-navy hover:bg-trello-surface"
               onClick={onClose}
             >
               {label}
-            </button>
+            </Button>
           ))}
         </div>
 
+        <Separator className="bg-trello-ink-sm" />
+
         {/* Archive */}
-        <div className="border-t border-[#091e4214] py-1">
-          <button
-            type="button"
-            className="w-full px-4 py-2 text-left text-sm text-[#172b4d] hover:bg-[#f4f5f7]"
+        <div className="py-1">
+          <Button
+            variant="ghost"
+            className="h-auto w-full justify-start rounded-none px-4 py-2 text-sm text-trello-navy hover:bg-trello-surface"
             onClick={() => {
               onDeleteList();
               onClose();
             }}
           >
             Archive this list
-          </button>
-          <button
-            type="button"
-            className="w-full px-4 py-2 text-left text-sm text-[#172b4d] hover:bg-[#f4f5f7]"
+          </Button>
+          <Button
+            variant="ghost"
+            className="h-auto w-full justify-start rounded-none px-4 py-2 text-sm text-trello-navy hover:bg-trello-surface"
             onClick={onClose}
           >
             Archive all cards in this list
-          </button>
+          </Button>
         </div>
       </div>
     </>

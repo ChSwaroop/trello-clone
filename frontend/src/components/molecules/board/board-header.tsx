@@ -85,13 +85,11 @@ export default function BoardHeader({ boardId }: BoardHeaderProps) {
       {/* Left side */}
       <div className="flex min-w-0 flex-1 items-center gap-1">
         {/* Back to boards */}
-        <Link
-          to="/boards"
-          className="flex size-8 items-center justify-center rounded-md text-white hover:bg-[#ffffff29]"
-          aria-label="Boards"
-        >
-          <LayoutGrid className="size-4" />
-        </Link>
+        <Button variant="board" size="icon" asChild aria-label="Boards">
+          <Link to="/boards">
+            <LayoutGrid className="size-4" />
+          </Link>
+        </Button>
 
         {/* Board title */}
         {isEditingTitle ? (
@@ -103,51 +101,48 @@ export default function BoardHeader({ boardId }: BoardHeaderProps) {
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === "Escape") setIsEditingTitle(false);
             }}
-            className="rounded bg-[#ffffff29] px-2 py-1 text-base font-bold text-white outline-none"
+            className="rounded bg-board-glass px-2 py-1 text-base font-bold text-white outline-none"
           />
         ) : (
-          <button
-            type="button"
+          <Button
+            variant="board"
             onClick={() => setIsEditingTitle(true)}
-            className="rounded px-2 py-1 text-base font-bold text-white hover:bg-[#ffffff29]"
+            className="px-2 py-1 text-base font-bold"
           >
             {data.board.title}
-          </button>
+          </Button>
         )}
 
         {/* Views button */}
-        <button
-          type="button"
-          className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-white hover:bg-[#ffffff29]"
-        >
+        <Button variant="board" className="gap-1.5 px-2.5 py-1.5 text-sm font-medium">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
             <rect x="3" y="3" width="4" height="18" rx="1"/>
             <rect x="10" y="3" width="4" height="18" rx="1"/>
             <rect x="17" y="3" width="4" height="18" rx="1"/>
           </svg>
           <ChevronDown className="size-3.5" />
-        </button>
+        </Button>
 
         {/* Star */}
-        <button
-          type="button"
+        <Button
+          variant="board"
+          size="icon"
           onClick={() => data.board.isStarred ? unstarBoard() : starBoard()}
-          className="flex size-8 items-center justify-center rounded-md text-white hover:bg-[#ffffff29]"
           aria-label={data.board.isStarred ? "Unstar board" : "Star board"}
         >
           <Star
             className={cn("size-4", data.board.isStarred && "fill-yellow-300 text-yellow-300")}
           />
-        </button>
+        </Button>
 
         {/* Workspace visibility */}
-        <button
-          type="button"
-          className="hidden items-center gap-1 rounded-md px-2.5 py-1.5 text-sm font-medium text-white hover:bg-[#ffffff29] sm:flex"
+        <Button
+          variant="board"
+          className="hidden gap-1 px-2.5 py-1.5 text-sm font-medium sm:flex"
         >
           <Users className="size-4" />
           Workspace visible
-        </button>
+        </Button>
       </div>
 
       {/* Right side */}
@@ -158,41 +153,38 @@ export default function BoardHeader({ boardId }: BoardHeaderProps) {
             <MemberAvatar key={member.userId} user={member.user} />
           ))}
           {data.members.length > 3 && (
-            <span className="flex size-7 items-center justify-center rounded-full bg-[#dfe1e6] text-xs font-semibold text-[#172b4d]">
+            <span className="flex size-7 items-center justify-center rounded-full bg-trello-subtle text-xs font-semibold text-trello-navy">
               +{data.members.length - 3}
             </span>
           )}
         </div>
 
         {/* Automation */}
-        <button
-          type="button"
-          className="hidden items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-white hover:bg-[#ffffff29] sm:flex"
+        <Button
+          variant="board"
+          className="hidden gap-1.5 px-2.5 py-1.5 text-sm font-medium sm:flex"
         >
           <Zap className="size-4" />
           Automation
-        </button>
+        </Button>
 
         {/* Filter */}
         <Popover>
           <PopoverTrigger asChild>
-            <button
-              type="button"
-              className={cn(
-                "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-white hover:bg-[#ffffff29]",
-                hasFilters && "bg-[#ffffff3d]",
-              )}
+            <Button
+              variant={hasFilters ? "board-solid" : "board"}
+              className="gap-1.5 px-2.5 py-1.5 text-sm font-medium"
             >
               <Filter className="size-4" />
               Filter
-            </button>
+            </Button>
           </PopoverTrigger>
           <PopoverContent align="end" className="w-72 space-y-3">
-            <p className="text-sm font-semibold text-[#172b4d]">Filter cards</p>
+            <p className="text-sm font-semibold text-trello-navy">Filter cards</p>
 
             {/* Search */}
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-[#44546f]">Search</label>
+              <label className="text-xs font-semibold text-trello-slate">Search</label>
               <Input
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -202,7 +194,7 @@ export default function BoardHeader({ boardId }: BoardHeaderProps) {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-[#44546f]">Label</label>
+              <label className="text-xs font-semibold text-trello-slate">Label</label>
               <Select
                 value={activeFilters.labelId ?? "all"}
                 onValueChange={(value) =>
@@ -228,7 +220,7 @@ export default function BoardHeader({ boardId }: BoardHeaderProps) {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-[#44546f]">Member</label>
+              <label className="text-xs font-semibold text-trello-slate">Member</label>
               <Select
                 value={activeFilters.memberId ?? "all"}
                 onValueChange={(value) =>
@@ -250,7 +242,7 @@ export default function BoardHeader({ boardId }: BoardHeaderProps) {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-[#44546f]">Due date</label>
+              <label className="text-xs font-semibold text-trello-slate">Due date</label>
               <Input
                 type="date"
                 value={activeFilters.dueDate?.slice(0, 10) ?? ""}
@@ -277,21 +269,18 @@ export default function BoardHeader({ boardId }: BoardHeaderProps) {
         </Popover>
 
         {/* Share */}
-        <button
-          type="button"
-          className="flex items-center gap-1.5 rounded-md bg-[#ffffff29] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#ffffff3d]"
+        <Button
+          variant="board-solid"
+          className="gap-1.5 px-3 py-1.5 text-sm font-medium"
         >
           <Share2 className="size-4" />
           Share
-        </button>
+        </Button>
 
         {/* More */}
-        <button
-          type="button"
-          className="flex size-8 items-center justify-center rounded-md text-white hover:bg-[#ffffff29]"
-        >
+        <Button variant="board" size="icon">
           <MoreHorizontal className="size-4" />
-        </button>
+        </Button>
       </div>
     </header>
   );

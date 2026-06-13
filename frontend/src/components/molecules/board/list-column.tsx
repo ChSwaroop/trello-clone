@@ -57,13 +57,13 @@ export default function ListColumn({ list, boardId, dragHandleProps }: ListColum
   if (isCollapsed) {
     return (
       <div
-        className="flex h-fit w-10 shrink-0 cursor-pointer flex-col items-center rounded-xl bg-[#ebecf0] py-3 hover:bg-[#dfe1e6]"
+        className="flex h-fit w-10 shrink-0 cursor-pointer flex-col items-center rounded-xl bg-trello-list py-3 hover:bg-trello-subtle"
         onClick={() => setIsCollapsed(false)}
         title={`${list.title} (${list.cards.length} cards)`}
       >
-        <span className="mb-2 text-xs font-semibold text-[#44546f]">{list.cards.length}</span>
+        <span className="mb-2 text-xs font-semibold text-trello-slate">{list.cards.length}</span>
         <span
-          className="select-none text-sm font-semibold text-[#172b4d]"
+          className="select-none text-sm font-semibold text-trello-navy"
           style={{ writingMode: "vertical-rl", textOrientation: "mixed", transform: "rotate(180deg)" }}
         >
           {list.title}
@@ -75,7 +75,7 @@ export default function ListColumn({ list, boardId, dragHandleProps }: ListColum
   return (
     <div
       ref={setNodeRef}
-      className="relative flex max-h-full w-[272px] shrink-0 flex-col rounded-xl bg-[#ebecf0]"
+      className="relative flex max-h-full w-[272px] shrink-0 flex-col rounded-xl bg-trello-list"
       data-list-id={list.id}
     >
       {/* Actions menu */}
@@ -99,11 +99,11 @@ export default function ListColumn({ list, boardId, dragHandleProps }: ListColum
               if (e.key === "Enter") void handleSaveTitle();
               if (e.key === "Escape") { setTitle(list.title); setIsEditingTitle(false); }
             }}
-            className="h-8 flex-1 border-[#388bff] bg-white text-sm font-semibold text-[#172b4d] shadow-none"
+            className="h-8 flex-1 border-trello-focus bg-white text-sm font-semibold text-trello-navy shadow-none"
           />
         ) : (
           <h3
-            className="min-w-0 flex-1 cursor-grab truncate px-2 py-1 text-sm font-semibold text-[#172b4d] active:cursor-grabbing"
+            className="min-w-0 flex-1 cursor-grab truncate px-2 py-1 text-sm font-semibold text-trello-navy active:cursor-grabbing"
             onClick={() => setIsEditingTitle(true)}
             {...dragHandleProps}
           >
@@ -112,7 +112,7 @@ export default function ListColumn({ list, boardId, dragHandleProps }: ListColum
         )}
 
         {/* Card count */}
-        <span className="shrink-0 text-xs font-semibold text-[#44546f]">
+        <span className="shrink-0 text-xs font-semibold text-trello-slate">
           {list.cards.length > 0 ? list.cards.length : null}
         </span>
 
@@ -120,7 +120,7 @@ export default function ListColumn({ list, boardId, dragHandleProps }: ListColum
         <Button
           variant="ghost"
           size="icon-sm"
-          className="size-7 shrink-0 text-[#44546f] hover:bg-[#091e4224]"
+          className="size-7 shrink-0 text-trello-slate hover:bg-trello-ink-lg"
           onClick={() => setIsCollapsed(true)}
           aria-label="Collapse list"
         >
@@ -131,7 +131,7 @@ export default function ListColumn({ list, boardId, dragHandleProps }: ListColum
         <Button
           variant="ghost"
           size="icon-sm"
-          className="size-7 shrink-0 text-[#44546f] hover:bg-[#091e4224]"
+          className="size-7 shrink-0 text-trello-slate hover:bg-trello-ink-lg"
           onClick={() => setShowMenu(true)}
           aria-label="List actions"
         >
@@ -157,7 +157,7 @@ export default function ListColumn({ list, boardId, dragHandleProps }: ListColum
               value={newCardTitle}
               onChange={(e) => setNewCardTitle(e.target.value)}
               placeholder="Enter a title or paste a link"
-              className="w-full resize-none rounded-lg border border-[#388bff] bg-white px-3 py-2 text-sm text-[#172b4d] shadow-sm outline-none placeholder:text-[#626f86]"
+              className="w-full resize-none rounded-lg border border-trello-focus bg-white px-3 py-2 text-sm text-trello-navy shadow-sm outline-none placeholder:text-trello-muted"
               rows={3}
               onKeyDown={(e) => {
                 if (e.key === "Escape") { setIsAddingCard(false); setNewCardTitle(""); }
@@ -166,36 +166,38 @@ export default function ListColumn({ list, boardId, dragHandleProps }: ListColum
             />
             <div className="flex items-center gap-2">
               <Button
+                variant="trello"
                 size="sm"
-                className="bg-[#0079bf] text-white hover:bg-[#026aa7]"
                 disabled={isCreatingCard || !newCardTitle.trim()}
                 onClick={() => void handleAddCard()}
               >
                 Add card
               </Button>
-              <button
-                type="button"
-                className="rounded p-1.5 text-[#44546f] hover:bg-[#091e4224]"
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="text-trello-slate hover:bg-trello-ink-lg"
                 onClick={() => { setIsAddingCard(false); setNewCardTitle(""); }}
               >
                 <X className="size-4" />
-              </button>
+              </Button>
             </div>
           </div>
         ) : (
           <div className="mt-1 flex items-center gap-1">
-            <button
-              type="button"
+            <Button
+              variant="ghost"
               onClick={() => setIsAddingCard(true)}
-              className="flex flex-1 items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-[#44546f] hover:bg-[#091e4224]"
+              className="h-auto flex-1 justify-start gap-2 rounded-lg px-2 py-1.5 text-sm text-trello-slate hover:bg-trello-ink-lg"
             >
               <Plus className="size-4" />
               Add a card
-            </button>
+            </Button>
             {/* Template shortcut */}
-            <button
-              type="button"
-              className="flex size-7 items-center justify-center rounded-lg text-[#44546f] hover:bg-[#091e4224]"
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="size-7 text-trello-slate hover:bg-trello-ink-lg"
               title="Create from template"
               aria-label="Create from template"
             >
@@ -204,7 +206,7 @@ export default function ListColumn({ list, boardId, dragHandleProps }: ListColum
                 <path d="M3 9h18" />
                 <path d="M9 21V9" />
               </svg>
-            </button>
+            </Button>
           </div>
         )}
       </div>

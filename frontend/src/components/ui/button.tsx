@@ -19,6 +19,12 @@ const buttonVariants = cva(
         destructive:
           "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
         link: "text-primary underline-offset-4 hover:underline",
+        trello:
+          "bg-trello-blue text-white hover:bg-trello-blue-dark focus-visible:ring-trello-focus/50",
+        board:
+          "text-white hover:bg-board-glass aria-expanded:bg-board-glass focus-visible:ring-white/30",
+        "board-solid":
+          "bg-board-glass text-white hover:bg-board-glass-md aria-expanded:bg-board-glass-md focus-visible:ring-white/30",
       },
       size: {
         default:

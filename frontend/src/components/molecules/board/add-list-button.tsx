@@ -23,25 +23,25 @@ export default function AddListButton({ boardId }: AddListButtonProps) {
 
   if (!isAdding) {
     return (
-      <button
-        type="button"
+      <Button
+        variant="board-solid"
         onClick={() => setIsAdding(true)}
-        className="flex h-fit w-[272px] shrink-0 items-center gap-2 rounded-xl bg-[#ffffff3d] px-4 py-3 text-sm font-medium text-white hover:bg-[#ffffff52]"
+        className="h-fit w-[272px] shrink-0 justify-start gap-2 rounded-xl px-4 py-3 text-sm font-medium"
       >
         <span className="text-lg leading-none">+</span>
         Add another list
-      </button>
+      </Button>
     );
   }
 
   return (
-    <div className="w-[272px] shrink-0 rounded-xl bg-[#ebecf0] p-2">
+    <div className="w-[272px] shrink-0 rounded-xl bg-trello-list p-2">
       <textarea
         autoFocus
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         placeholder="Enter list title…"
-        className="w-full resize-none rounded-lg border border-[#388bff] bg-white px-3 py-2 text-sm text-[#172b4d] shadow-sm outline-none placeholder:text-[#626f86]"
+        className="w-full resize-none rounded-lg border border-trello-focus bg-white px-3 py-2 text-sm text-trello-navy shadow-sm outline-none placeholder:text-trello-muted"
         rows={2}
         onKeyDown={(e) => {
           if (e.key === "Enter") {
@@ -56,23 +56,23 @@ export default function AddListButton({ boardId }: AddListButtonProps) {
       />
       <div className="mt-2 flex items-center gap-2">
         <Button
+          variant="trello"
           size="sm"
-          className="bg-[#0079bf] text-white hover:bg-[#026aa7]"
           disabled={isPending || !title.trim()}
           onClick={() => void handleCreate()}
         >
           Add list
         </Button>
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="icon-sm"
           onClick={() => {
             setIsAdding(false);
             setTitle("");
           }}
-          className="flex size-8 items-center justify-center rounded text-[#44546f] hover:bg-[#091e4224]"
         >
           <X className="size-4" />
-        </button>
+        </Button>
       </div>
     </div>
   );
