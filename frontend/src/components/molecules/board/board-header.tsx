@@ -1,13 +1,16 @@
 import { Link } from "@tanstack/react-router";
 import {
   ChevronDown,
+  Filter,
   LayoutGrid,
-  Search,
+  MoreHorizontal,
+  Share2,
   Star,
   Users,
   X,
+  Zap,
 } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import MemberAvatar from "@/components/molecules/member-avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,25 +59,20 @@ export default function BoardHeader({ boardId }: BoardHeaderProps) {
     dueDate: activeFilters.dueDate ?? undefined,
   });
 
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [boardTitle, setBoardTitle] = useState(data.board.title);
+
   useEffect(() => {
     if (debouncedSearch) {
       setFilteredCardIds(new Set(searchResults?.map((card) => card.id) ?? []));
       return;
     }
-
     if (activeFilters.labelId || activeFilters.memberId || activeFilters.dueDate) {
       setFilteredCardIds(new Set(filterResults?.map((card) => card.id) ?? []));
       return;
     }
-
     setFilteredCardIds(null);
-  }, [
-    debouncedSearch,
-    searchResults,
-    filterResults,
-    activeFilters,
-    setFilteredCardIds,
-  ]);
+  }, [debouncedSearch, searchResults, filterResults, activeFilters, setFilteredCardIds]);
 
   const hasFilters =
     Boolean(debouncedSearch) ||
@@ -83,72 +81,125 @@ export default function BoardHeader({ boardId }: BoardHeaderProps) {
     Boolean(activeFilters.dueDate);
 
   return (
-    <header className="flex shrink-0 flex-wrap items-center gap-2 px-3 py-2 text-white">
-      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+    <header className="flex shrink-0 items-center justify-between gap-2 px-4 py-2">
+      {/* Left side */}
+      <div className="flex min-w-0 flex-1 items-center gap-1">
+        {/* Back to boards */}
         <Link
           to="/boards"
-          className="flex size-8 items-center justify-center rounded-md hover:bg-[#ffffff29]"
+          className="flex size-8 items-center justify-center rounded-md text-white hover:bg-[#ffffff29]"
           aria-label="Boards"
         >
           <LayoutGrid className="size-4" />
         </Link>
 
-        <div className="flex min-w-0 items-center gap-1 rounded-md bg-[#ffffff29] px-2 py-1">
-          <h1 className="truncate text-base font-bold">{data.board.title}</h1>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="size-7 text-white hover:bg-[#ffffff29]"
-            onClick={() =>
-              data.board.isStarred ? unstarBoard() : starBoard()
-            }
-            aria-label={data.board.isStarred ? "Unstar board" : "Star board"}
+        {/* Board title */}
+        {isEditingTitle ? (
+          <input
+            autoFocus
+            value={boardTitle}
+            onChange={(e) => setBoardTitle(e.target.value)}
+            onBlur={() => setIsEditingTitle(false)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === "Escape") setIsEditingTitle(false);
+            }}
+            className="rounded bg-[#ffffff29] px-2 py-1 text-base font-bold text-white outline-none"
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setIsEditingTitle(true)}
+            className="rounded px-2 py-1 text-base font-bold text-white hover:bg-[#ffffff29]"
           >
-            <Star
-              className={cn(
-                "size-4",
-                data.board.isStarred && "fill-yellow-300 text-yellow-300",
-              )}
-            />
-          </Button>
-        </div>
+            {data.board.title}
+          </button>
+        )}
 
-        <div className="hidden items-center gap-1 md:flex">
-          {data.members.slice(0, 4).map((member) => (
-            <MemberAvatar key={member.userId} user={member.user} />
-          ))}
-          {data.members.length > 4 ? (
-            <span className="rounded-full bg-[#dfe1e6] px-2 py-1 text-xs font-semibold text-[#172b4d]">
-              +{data.members.length - 4}
-            </span>
-          ) : null}
-        </div>
+        {/* Views button */}
+        <button
+          type="button"
+          className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-white hover:bg-[#ffffff29]"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <rect x="3" y="3" width="4" height="18" rx="1"/>
+            <rect x="10" y="3" width="4" height="18" rx="1"/>
+            <rect x="17" y="3" width="4" height="18" rx="1"/>
+          </svg>
+          <ChevronDown className="size-3.5" />
+        </button>
+
+        {/* Star */}
+        <button
+          type="button"
+          onClick={() => data.board.isStarred ? unstarBoard() : starBoard()}
+          className="flex size-8 items-center justify-center rounded-md text-white hover:bg-[#ffffff29]"
+          aria-label={data.board.isStarred ? "Unstar board" : "Star board"}
+        >
+          <Star
+            className={cn("size-4", data.board.isStarred && "fill-yellow-300 text-yellow-300")}
+          />
+        </button>
+
+        {/* Workspace visibility */}
+        <button
+          type="button"
+          className="hidden items-center gap-1 rounded-md px-2.5 py-1.5 text-sm font-medium text-white hover:bg-[#ffffff29] sm:flex"
+        >
+          <Users className="size-4" />
+          Workspace visible
+        </button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative hidden sm:block">
-          <Search className="pointer-events-none absolute top-1/2 left-2 size-4 -translate-y-1/2 text-[#44546f]" />
-          <Input
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="Search cards..."
-            className="h-8 w-44 border-none bg-[#ffffff52] pl-8 text-sm text-[#172b4d] placeholder:text-[#44546f] md:w-56"
-          />
+      {/* Right side */}
+      <div className="flex items-center gap-1.5">
+        {/* Members */}
+        <div className="hidden items-center gap-1 md:flex">
+          {data.members.slice(0, 3).map((member) => (
+            <MemberAvatar key={member.userId} user={member.user} />
+          ))}
+          {data.members.length > 3 && (
+            <span className="flex size-7 items-center justify-center rounded-full bg-[#dfe1e6] text-xs font-semibold text-[#172b4d]">
+              +{data.members.length - 3}
+            </span>
+          )}
         </div>
 
+        {/* Automation */}
+        <button
+          type="button"
+          className="hidden items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-white hover:bg-[#ffffff29] sm:flex"
+        >
+          <Zap className="size-4" />
+          Automation
+        </button>
+
+        {/* Filter */}
         <Popover>
           <PopoverTrigger asChild>
-            <Button
-              variant="ghost"
-              className="h-8 bg-[#ffffff29] text-white hover:bg-[#ffffff3d]"
+            <button
+              type="button"
+              className={cn(
+                "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-white hover:bg-[#ffffff29]",
+                hasFilters && "bg-[#ffffff3d]",
+              )}
             >
-              <Users className="size-4" />
+              <Filter className="size-4" />
               Filter
-              <ChevronDown className="size-4" />
-            </Button>
+            </button>
           </PopoverTrigger>
           <PopoverContent align="end" className="w-72 space-y-3">
             <p className="text-sm font-semibold text-[#172b4d]">Filter cards</p>
+
+            {/* Search */}
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-[#44546f]">Search</label>
+              <Input
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search cards…"
+                className="text-sm"
+              />
+            </div>
 
             <div className="space-y-1">
               <label className="text-xs font-semibold text-[#44546f]">Label</label>
@@ -203,31 +254,44 @@ export default function BoardHeader({ boardId }: BoardHeaderProps) {
               <Input
                 type="date"
                 value={activeFilters.dueDate?.slice(0, 10) ?? ""}
-                onChange={(event) =>
+                onChange={(e) =>
                   setActiveFilters({
-                    dueDate: event.target.value
-                      ? new Date(event.target.value).toISOString()
-                      : null,
+                    dueDate: e.target.value ? new Date(e.target.value).toISOString() : null,
                   })
                 }
               />
             </div>
+
+            {hasFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full"
+                onClick={() => { setSearchTerm(""); clearFilters(); }}
+              >
+                <X className="size-4 mr-1" />
+                Clear all filters
+              </Button>
+            )}
           </PopoverContent>
         </Popover>
 
-        {hasFilters ? (
-          <Button
-            variant="ghost"
-            className="h-8 bg-[#ffffff29] text-white hover:bg-[#ffffff3d]"
-            onClick={() => {
-              setSearchTerm("");
-              clearFilters();
-            }}
-          >
-            <X className="size-4" />
-            Clear
-          </Button>
-        ) : null}
+        {/* Share */}
+        <button
+          type="button"
+          className="flex items-center gap-1.5 rounded-md bg-[#ffffff29] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#ffffff3d]"
+        >
+          <Share2 className="size-4" />
+          Share
+        </button>
+
+        {/* More */}
+        <button
+          type="button"
+          className="flex size-8 items-center justify-center rounded-md text-white hover:bg-[#ffffff29]"
+        >
+          <MoreHorizontal className="size-4" />
+        </button>
       </div>
     </header>
   );
