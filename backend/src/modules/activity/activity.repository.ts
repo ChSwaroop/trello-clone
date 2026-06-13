@@ -1,4 +1,4 @@
-import type { ActivityType, Prisma } from "../../generated/prisma/client.js";
+import type { ActivityType, BoardVisibility, Prisma } from "../../generated/prisma/client.js";
 import { prisma } from "../../db/prisma.js";
 
 type CreateActivityInput = {
@@ -9,6 +9,19 @@ type CreateActivityInput = {
   userId?: string;
   metadata?: Prisma.InputJsonValue;
 };
+
+const accessibleBoardsWhere = (userId: string): Prisma.BoardWhereInput => ({
+  isClosed: false,
+  OR: [
+    { ownerId: userId },
+    { members: { some: { userId } } },
+    {
+      visibility: { in: ["WORKSPACE", "PUBLIC"] satisfies BoardVisibility[] },
+      workspace: { members: { some: { userId } } },
+    },
+    { visibility: "PUBLIC" },
+  ],
+});
 
 export class ActivityRepository {
   async create(input: CreateActivityInput) {
@@ -34,6 +47,41 @@ export class ActivityRepository {
         },
       },
     });
+  }
+
+  async findForUser(userId: string, limit: number, offset: number) {
+    const accessibleBoards = await prisma.board.findMany({
+      where: accessibleBoardsWhere(userId),
+      select: { id: true },
+    });
+    const boardIds = accessibleBoards.map((board) => board.id);
+
+    const where = {
+      OR: [{ boardId: { in: boardIds } }, { boardId: null, userId }],
+    };
+
+    const [activities, total] = await Promise.all([
+      prisma.activity.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip: offset,
+        take: limit,
+        include: {
+          user: {
+            select: { id: true, name: true, email: true, avatarUrl: true },
+          },
+          board: {
+            select: { id: true, title: true, workspaceId: true },
+          },
+          card: {
+            select: { id: true, title: true },
+          },
+        },
+      }),
+      prisma.activity.count({ where }),
+    ]);
+
+    return { activities, total };
   }
 }
 

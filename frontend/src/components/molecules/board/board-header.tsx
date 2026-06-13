@@ -3,6 +3,7 @@ import {
   ChevronDown,
   Filter,
   LayoutGrid,
+  ListFilter,
   MoreHorizontal,
   Share2,
   Star,
@@ -67,12 +68,22 @@ export default function BoardHeader({ boardId }: BoardHeaderProps) {
       setFilteredCardIds(new Set(searchResults?.map((card) => card.id) ?? []));
       return;
     }
-    if (activeFilters.labelId || activeFilters.memberId || activeFilters.dueDate) {
+    if (
+      activeFilters.labelId ||
+      activeFilters.memberId ||
+      activeFilters.dueDate
+    ) {
       setFilteredCardIds(new Set(filterResults?.map((card) => card.id) ?? []));
       return;
     }
     setFilteredCardIds(null);
-  }, [debouncedSearch, searchResults, filterResults, activeFilters, setFilteredCardIds]);
+  }, [
+    debouncedSearch,
+    searchResults,
+    filterResults,
+    activeFilters,
+    setFilteredCardIds,
+  ]);
 
   const hasFilters =
     Boolean(debouncedSearch) ||
@@ -81,16 +92,9 @@ export default function BoardHeader({ boardId }: BoardHeaderProps) {
     Boolean(activeFilters.dueDate);
 
   return (
-    <header className="flex shrink-0 items-center justify-between gap-2 px-4 py-2">
+    <header className="flex shrink-0 items-center justify-between gap-2 px-4 py-2 bg-background/35">
       {/* Left side */}
-      <div className="flex min-w-0 flex-1 items-center gap-1">
-        {/* Back to boards */}
-        <Button variant="board" size="icon" asChild aria-label="Boards">
-          <Link to="/boards">
-            <LayoutGrid className="size-4" />
-          </Link>
-        </Button>
-
+      <div className="flex min-w-0 flex-1 items-center gap-1 ">
         {/* Board title */}
         {isEditingTitle ? (
           <input
@@ -99,7 +103,8 @@ export default function BoardHeader({ boardId }: BoardHeaderProps) {
             onChange={(e) => setBoardTitle(e.target.value)}
             onBlur={() => setIsEditingTitle(false)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === "Escape") setIsEditingTitle(false);
+              if (e.key === "Enter" || e.key === "Escape")
+                setIsEditingTitle(false);
             }}
             className="rounded bg-board-glass px-2 py-1 text-base font-bold text-white outline-none"
           />
@@ -114,39 +119,36 @@ export default function BoardHeader({ boardId }: BoardHeaderProps) {
         )}
 
         {/* Views button */}
-        <Button variant="board" className="gap-1.5 px-2.5 py-1.5 text-sm font-medium">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <rect x="3" y="3" width="4" height="18" rx="1"/>
-            <rect x="10" y="3" width="4" height="18" rx="1"/>
-            <rect x="17" y="3" width="4" height="18" rx="1"/>
+        <Button
+          variant="board"
+          className="gap-1.5 px-2.5 py-1.5 text-sm font-medium"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+          >
+            <rect x="3" y="3" width="4" height="18" rx="1" />
+            <rect x="10" y="3" width="4" height="18" rx="1" />
+            <rect x="17" y="3" width="4" height="18" rx="1" />
           </svg>
           <ChevronDown className="size-3.5" />
         </Button>
 
-        {/* Star */}
-        <Button
-          variant="board"
-          size="icon"
-          onClick={() => data.board.isStarred ? unstarBoard() : starBoard()}
-          aria-label={data.board.isStarred ? "Unstar board" : "Star board"}
-        >
-          <Star
-            className={cn("size-4", data.board.isStarred && "fill-yellow-300 text-yellow-300")}
-          />
-        </Button>
-
         {/* Workspace visibility */}
-        <Button
+        {/* <Button
           variant="board"
           className="hidden gap-1 px-2.5 py-1.5 text-sm font-medium sm:flex"
         >
           <Users className="size-4" />
           Workspace visible
-        </Button>
+        </Button> */}
       </div>
 
       {/* Right side */}
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1">
         {/* Members */}
         <div className="hidden items-center gap-1 md:flex">
           {data.members.slice(0, 3).map((member) => (
@@ -162,10 +164,9 @@ export default function BoardHeader({ boardId }: BoardHeaderProps) {
         {/* Automation */}
         <Button
           variant="board"
-          className="hidden gap-1.5 px-2.5 py-1.5 text-sm font-medium sm:flex"
+          className="hidden p-2 text-sm font-medium sm:flex rounded-sm"
         >
           <Zap className="size-4" />
-          Automation
         </Button>
 
         {/* Filter */}
@@ -173,18 +174,21 @@ export default function BoardHeader({ boardId }: BoardHeaderProps) {
           <PopoverTrigger asChild>
             <Button
               variant={hasFilters ? "board-solid" : "board"}
-              className="gap-1.5 px-2.5 py-1.5 text-sm font-medium"
+              className="p-2 text-sm font-medium rounded-sm"
             >
-              <Filter className="size-4" />
-              Filter
+              <ListFilter className="size-4" />
             </Button>
           </PopoverTrigger>
           <PopoverContent align="end" className="w-72 space-y-3">
-            <p className="text-sm font-semibold text-trello-navy">Filter cards</p>
+            <p className="text-sm font-semibold text-trello-navy">
+              Filter cards
+            </p>
 
             {/* Search */}
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-trello-slate">Search</label>
+              <label className="text-xs font-semibold text-trello-slate">
+                Search
+              </label>
               <Input
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -194,7 +198,9 @@ export default function BoardHeader({ boardId }: BoardHeaderProps) {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-trello-slate">Label</label>
+              <label className="text-xs font-semibold text-trello-slate">
+                Label
+              </label>
               <Select
                 value={activeFilters.labelId ?? "all"}
                 onValueChange={(value) =>
@@ -220,7 +226,9 @@ export default function BoardHeader({ boardId }: BoardHeaderProps) {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-trello-slate">Member</label>
+              <label className="text-xs font-semibold text-trello-slate">
+                Member
+              </label>
               <Select
                 value={activeFilters.memberId ?? "all"}
                 onValueChange={(value) =>
@@ -242,13 +250,17 @@ export default function BoardHeader({ boardId }: BoardHeaderProps) {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-trello-slate">Due date</label>
+              <label className="text-xs font-semibold text-trello-slate">
+                Due date
+              </label>
               <Input
                 type="date"
                 value={activeFilters.dueDate?.slice(0, 10) ?? ""}
                 onChange={(e) =>
                   setActiveFilters({
-                    dueDate: e.target.value ? new Date(e.target.value).toISOString() : null,
+                    dueDate: e.target.value
+                      ? new Date(e.target.value).toISOString()
+                      : null,
                   })
                 }
               />
@@ -259,7 +271,10 @@ export default function BoardHeader({ boardId }: BoardHeaderProps) {
                 variant="ghost"
                 size="sm"
                 className="w-full"
-                onClick={() => { setSearchTerm(""); clearFilters(); }}
+                onClick={() => {
+                  setSearchTerm("");
+                  clearFilters();
+                }}
               >
                 <X className="size-4 mr-1" />
                 Clear all filters
@@ -267,6 +282,21 @@ export default function BoardHeader({ boardId }: BoardHeaderProps) {
             )}
           </PopoverContent>
         </Popover>
+
+        {/* Star */}
+        <Button
+          variant="board"
+          size="icon"
+          onClick={() => (data.board.isStarred ? unstarBoard() : starBoard())}
+          aria-label={data.board.isStarred ? "Unstar board" : "Star board"}
+        >
+          <Star
+            className={cn(
+              "size-4",
+              data.board.isStarred && "fill-yellow-300 text-yellow-300",
+            )}
+          />
+        </Button>
 
         {/* Share */}
         <Button

@@ -17,11 +17,7 @@ import MemberAvatar from "@/components/molecules/member-avatar";
 import CardModalActivity from "@/components/molecules/board/card-modal-activity";
 import CardModalChecklist from "@/components/molecules/board/card-modal-checklist";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -71,8 +67,12 @@ export default function CardModal({ boardId }: CardModalProps) {
         showCloseButton={false}
         className="max-h-[90vh] max-w-[768px] overflow-y-auto border-none bg-trello-surface p-0"
       >
-        <DialogTitle className="sr-only">{card.title}</DialogTitle>
-        <CardModalContent boardId={boardId} card={card} onClose={closeCardModal} />
+        <DialogTitle className="sr-only">{card.title}asdsd</DialogTitle>
+        <CardModalContent
+          boardId={boardId}
+          card={card}
+          onClose={closeCardModal}
+        />
       </DialogContent>
     </Dialog>
   );
@@ -126,7 +126,10 @@ function CardModalContent({
 
   const saveTitle = async () => {
     const trimmed = title.trim();
-    if (!trimmed || trimmed === card.title) { setTitle(card.title); return; }
+    if (!trimmed || trimmed === card.title) {
+      setTitle(card.title);
+      return;
+    }
     await updateCard({ cardId: card.id, payload: { title: trimmed } });
   };
 
@@ -146,7 +149,10 @@ function CardModalContent({
     <div className="relative flex flex-col">
       {/* Cover */}
       {card.coverColor && (
-        <div className="h-32 w-full rounded-t-lg" style={{ backgroundColor: card.coverColor }} />
+        <div
+          className="h-32 w-full rounded-t-lg"
+          style={{ backgroundColor: card.coverColor }}
+        />
       )}
 
       {/* Title row */}
@@ -154,7 +160,12 @@ function CardModalContent({
         {/* Circle complete toggle */}
         <button
           type="button"
-          onClick={() => void updateCard({ cardId: card.id, payload: { dueComplete: !card.dueComplete } })}
+          onClick={() =>
+            void updateCard({
+              cardId: card.id,
+              payload: { dueComplete: !card.dueComplete },
+            })
+          }
           className={cn(
             "mt-1 flex size-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
             card.dueComplete
@@ -164,8 +175,18 @@ function CardModalContent({
           aria-label={card.dueComplete ? "Mark incomplete" : "Mark complete"}
         >
           {card.dueComplete && (
-            <svg className="size-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            <svg
+              className="size-3 text-white"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={3}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M5 13l4 4L19 7"
+              />
             </svg>
           )}
         </button>
@@ -178,7 +199,10 @@ function CardModalContent({
           className="min-h-[32px] flex-1 resize-none bg-transparent text-xl font-semibold leading-snug text-trello-navy outline-none placeholder:text-trello-slate hover:bg-trello-ink-xs focus:rounded focus:bg-white focus:px-2 focus:py-1"
           rows={1}
           onKeyDown={(e) => {
-            if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); }
+            if (e.key === "Enter") {
+              e.preventDefault();
+              e.currentTarget.blur();
+            }
           }}
         />
 
@@ -207,13 +231,17 @@ function CardModalContent({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem
-                onClick={() => { void archiveCard(card.id).then(onClose); }}
+                onClick={() => {
+                  void archiveCard(card.id).then(onClose);
+                }}
               >
                 Archive
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive"
-                onClick={() => { void deleteCard(card.id).then(onClose); }}
+                onClick={() => {
+                  void deleteCard(card.id).then(onClose);
+                }}
               >
                 <Trash2 className="size-3.5" />
                 Delete
@@ -256,23 +284,54 @@ function CardModalContent({
           onClose={() => setOpenToolbar(null)}
         >
           <div className="w-60 py-1">
-            <p className="px-3 py-1.5 text-xs font-semibold text-trello-slate">Add to card</p>
+            <p className="px-3 py-1.5 text-xs font-semibold text-trello-slate">
+              Add to card
+            </p>
             {[
-              { key: "labels", icon: Tag, label: "Labels", desc: "Organize, categorize, and prioritize" },
-              { key: "dates", icon: Calendar, label: "Dates", desc: "Start dates, due dates, and reminders" },
-              { key: "checklist", icon: CheckSquare, label: "Checklist", desc: "Add subtasks" },
-              { key: "members", icon: Users, label: "Members", desc: "Assign members" },
-              { key: "attachment", icon: Paperclip, label: "Attachment", desc: "Add links, pages, items, and more" },
+              {
+                key: "labels",
+                icon: Tag,
+                label: "Labels",
+                desc: "Organize, categorize, and prioritize",
+              },
+              {
+                key: "dates",
+                icon: Calendar,
+                label: "Dates",
+                desc: "Start dates, due dates, and reminders",
+              },
+              {
+                key: "checklist",
+                icon: CheckSquare,
+                label: "Checklist",
+                desc: "Add subtasks",
+              },
+              {
+                key: "members",
+                icon: Users,
+                label: "Members",
+                desc: "Assign members",
+              },
+              {
+                key: "attachment",
+                icon: Paperclip,
+                label: "Attachment",
+                desc: "Add links, pages, items, and more",
+              },
             ].map(({ key, icon: Icon, label, desc }) => (
               <Button
                 key={key}
                 variant="ghost"
                 className="h-auto w-full justify-start gap-3 rounded-none px-3 py-2 text-left"
-                onClick={() => { setOpenToolbar(key); }}
+                onClick={() => {
+                  setOpenToolbar(key);
+                }}
               >
                 <Icon className="size-4 shrink-0 text-trello-slate" />
                 <div>
-                  <p className="text-sm font-medium text-trello-navy">{label}</p>
+                  <p className="text-sm font-medium text-trello-navy">
+                    {label}
+                  </p>
                   <p className="text-xs text-trello-slate">{desc}</p>
                 </div>
               </Button>
@@ -299,7 +358,11 @@ function CardModalContent({
                 onChange={(e) =>
                   void updateCard({
                     cardId: card.id,
-                    payload: { startDate: e.target.value ? new Date(e.target.value).toISOString() : null },
+                    payload: {
+                      startDate: e.target.value
+                        ? new Date(e.target.value).toISOString()
+                        : null,
+                    },
                   })
                 }
                 className="h-8 bg-white text-sm"
@@ -313,7 +376,11 @@ function CardModalContent({
                 onChange={(e) =>
                   void updateCard({
                     cardId: card.id,
-                    payload: { dueDate: e.target.value ? new Date(e.target.value).toISOString() : null },
+                    payload: {
+                      dueDate: e.target.value
+                        ? new Date(e.target.value).toISOString()
+                        : null,
+                    },
                   })
                 }
                 className="h-8 bg-white text-sm"
@@ -325,9 +392,10 @@ function CardModalContent({
                 variant="ghost"
                 className="w-full text-trello-slate"
                 onClick={() =>
-                  void updateCard({ cardId: card.id, payload: { dueDate: null } }).then(() =>
-                    setOpenToolbar(null),
-                  )
+                  void updateCard({
+                    cardId: card.id,
+                    payload: { dueDate: null },
+                  }).then(() => setOpenToolbar(null))
                 }
               >
                 Remove
@@ -345,7 +413,9 @@ function CardModalContent({
           onClose={() => setOpenToolbar(null)}
         >
           <div className="w-60 space-y-2 p-3">
-            <p className="text-xs font-semibold text-trello-slate">Add checklist</p>
+            <p className="text-xs font-semibold text-trello-slate">
+              Add checklist
+            </p>
             <Input
               value={newChecklistTitle}
               onChange={(e) => setNewChecklistTitle(e.target.value)}
@@ -377,7 +447,9 @@ function CardModalContent({
           onClose={() => setOpenToolbar(null)}
         >
           <div className="w-60 py-1">
-            <p className="px-3 py-1.5 text-xs font-semibold text-trello-slate">Members</p>
+            <p className="px-3 py-1.5 text-xs font-semibold text-trello-slate">
+              Members
+            </p>
             {data.members.map((member) => {
               const assigned = card.members.some((m) => m.id === member.userId);
               return (
@@ -387,13 +459,23 @@ function CardModalContent({
                   className="h-auto w-full justify-start gap-2 rounded-none px-3 py-2"
                   onClick={() =>
                     assigned
-                      ? void removeMember({ cardId: card.id, memberId: member.userId })
-                      : void assignMember({ cardId: card.id, payload: { memberId: member.userId } })
+                      ? void removeMember({
+                          cardId: card.id,
+                          memberId: member.userId,
+                        })
+                      : void assignMember({
+                          cardId: card.id,
+                          payload: { memberId: member.userId },
+                        })
                   }
                 >
                   <MemberAvatar user={member.user} />
-                  <span className="flex-1 text-left text-trello-navy">{member.user.name}</span>
-                  {assigned && <span className="text-xs text-trello-blue">✓</span>}
+                  <span className="flex-1 text-left text-trello-navy">
+                    {member.user.name}
+                  </span>
+                  {assigned && (
+                    <span className="text-xs text-trello-blue">✓</span>
+                  )}
                 </Button>
               );
             })}
@@ -411,8 +493,12 @@ function CardModalContent({
           <LabelPicker
             boardId={boardId}
             card={card}
-            onAssign={(labelId) => void assignLabel({ cardId: card.id, payload: { labelId } })}
-            onRemove={(labelId) => void removeLabel({ cardId: card.id, labelId })}
+            onAssign={(labelId) =>
+              void assignLabel({ cardId: card.id, payload: { labelId } })
+            }
+            onRemove={(labelId) =>
+              void removeLabel({ cardId: card.id, labelId })
+            }
           />
         </ToolbarButton>
 
@@ -425,7 +511,9 @@ function CardModalContent({
           onClose={() => setOpenToolbar(null)}
         >
           <div className="w-60 p-3">
-            <p className="mb-2 text-xs font-semibold text-trello-slate">Attach a link</p>
+            <p className="mb-2 text-xs font-semibold text-trello-slate">
+              Attach a link
+            </p>
             <Input placeholder="Paste a link…" className="bg-white text-sm" />
           </div>
         </ToolbarButton>
@@ -438,13 +526,17 @@ function CardModalContent({
           {/* Labels */}
           {card.labels.length > 0 && (
             <div>
-              <p className="mb-1.5 text-xs font-semibold text-trello-slate">Labels</p>
+              <p className="mb-1.5 text-xs font-semibold text-trello-slate">
+                Labels
+              </p>
               <div className="flex flex-wrap gap-1.5">
                 {card.labels.map((label) => (
                   <button
                     key={label.id}
                     type="button"
-                    onClick={() => void removeLabel({ cardId: card.id, labelId: label.id })}
+                    onClick={() =>
+                      void removeLabel({ cardId: card.id, labelId: label.id })
+                    }
                     className="flex min-w-[48px] items-center rounded px-3 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-80"
                     style={{ backgroundColor: label.color }}
                     title={`Remove ${label.name}`}
@@ -469,14 +561,21 @@ function CardModalContent({
           {/* Members */}
           {card.members.length > 0 && (
             <div>
-              <p className="mb-1.5 text-xs font-semibold text-trello-slate">Members</p>
+              <p className="mb-1.5 text-xs font-semibold text-trello-slate">
+                Members
+              </p>
               <div className="flex flex-wrap items-center gap-1">
                 {card.members.map((member) => (
                   <button
                     key={member.id}
                     type="button"
                     title={`Remove ${member.name}`}
-                    onClick={() => void removeMember({ cardId: card.id, memberId: member.id })}
+                    onClick={() =>
+                      void removeMember({
+                        cardId: card.id,
+                        memberId: member.id,
+                      })
+                    }
                   >
                     <MemberAvatar user={member} size="md" />
                   </button>
@@ -497,11 +596,16 @@ function CardModalContent({
           {/* Due date */}
           {card.dueDate && (
             <div>
-              <p className="mb-1.5 text-xs font-semibold text-trello-slate">Due date</p>
+              <p className="mb-1.5 text-xs font-semibold text-trello-slate">
+                Due date
+              </p>
               <button
                 type="button"
                 onClick={() =>
-                  void updateCard({ cardId: card.id, payload: { dueComplete: !card.dueComplete } })
+                  void updateCard({
+                    cardId: card.id,
+                    payload: { dueComplete: !card.dueComplete },
+                  })
                 }
                 className={cn(
                   "flex items-center gap-2 rounded px-3 py-1.5 text-sm transition-colors",
@@ -520,10 +624,22 @@ function CardModalContent({
           <div>
             <div className="mb-2 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <svg className="size-4 text-trello-slate" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h7" />
+                <svg
+                  className="size-4 text-trello-slate"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M4 6h16M4 12h16M4 18h7"
+                  />
                 </svg>
-                <span className="text-sm font-semibold text-trello-navy">Description</span>
+                <span className="text-sm font-semibold text-trello-navy">
+                  Description
+                </span>
               </div>
               {!isEditingDescription && (
                 <Button
@@ -557,7 +673,10 @@ function CardModalContent({
                   <Button
                     size="sm"
                     variant="ghost"
-                    onClick={() => { setDescription(card.description ?? ""); setIsEditingDescription(false); }}
+                    onClick={() => {
+                      setDescription(card.description ?? "");
+                      setIsEditingDescription(false);
+                    }}
                   >
                     Cancel
                   </Button>
@@ -583,7 +702,11 @@ function CardModalContent({
 
           {/* Checklists */}
           {card.checklists.map((checklist) => (
-            <CardModalChecklist key={checklist.id} boardId={boardId} checklist={checklist} />
+            <CardModalChecklist
+              key={checklist.id}
+              boardId={boardId}
+              checklist={checklist}
+            />
           ))}
         </div>
 
@@ -618,7 +741,10 @@ function ToolbarButton({
   active?: boolean;
 }) {
   return (
-    <Popover open={isOpen} onOpenChange={(open) => (open ? onToggle() : onClose())}>
+    <Popover
+      open={isOpen}
+      onOpenChange={(open) => (open ? onToggle() : onClose())}
+    >
       <PopoverTrigger asChild>
         <Button
           variant="ghost"
@@ -659,11 +785,17 @@ function LabelPicker({
 
   return (
     <div className="w-60 py-1">
-      <p className="px-3 py-1.5 text-xs font-semibold text-trello-slate">Labels</p>
+      <p className="px-3 py-1.5 text-xs font-semibold text-trello-slate">
+        Labels
+      </p>
       {data.labels.length === 0 ? (
         <div className="flex flex-wrap gap-1.5 px-3 py-2">
           {LABEL_COLORS.slice(0, 8).map((color) => (
-            <span key={color} className="size-7 rounded-sm" style={{ backgroundColor: color }} />
+            <span
+              key={color}
+              className="size-7 rounded-sm"
+              style={{ backgroundColor: color }}
+            />
           ))}
         </div>
       ) : (
@@ -674,7 +806,9 @@ function LabelPicker({
               key={label.id}
               variant="ghost"
               className="h-auto w-full justify-start gap-2 rounded-none px-3 py-2"
-              onClick={() => (assigned ? onRemove(label.id) : onAssign(label.id))}
+              onClick={() =>
+                assigned ? onRemove(label.id) : onAssign(label.id)
+              }
             >
               <span
                 className="h-7 flex-1 rounded px-2 text-xs font-semibold leading-7 text-white"

@@ -1,9 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Plus, Star } from "lucide-react";
-import TrelloLogo from "@/components/molecules/trello-logo";
 import { useState } from "react";
 import { motion } from "framer-motion";
-import MemberAvatar from "@/components/molecules/member-avatar";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -15,12 +13,12 @@ import { Input } from "@/components/ui/input";
 import useAuth from "@/hooks/apis/use-auth";
 import useBoards from "@/hooks/apis/use-boards";
 import useWorkspaces from "@/hooks/apis/use-workspaces";
-import { BOARD_BACKGROUNDS, TRELLO_NAV_BG } from "@/lib/constants";
+import { BOARD_BACKGROUNDS } from "@/lib/constants";
 import type { BOARD } from "@/lib/types";
 import { cn, getBoardBackgroundStyle } from "@/lib/utils";
 
 export default function BoardsListing() {
-  const { useGetCurrentUser, useLogout } = useAuth();
+  const { useGetCurrentUser } = useAuth();
   const { data: user } = useGetCurrentUser();
   const { useGetBoards, useGetStarredBoards, useCreateBoard } = useBoards();
   const { useGetWorkspaces } = useWorkspaces();
@@ -28,7 +26,6 @@ export default function BoardsListing() {
   const { data: starredBoards = [] } = useGetStarredBoards();
   const { data: workspaces = [] } = useGetWorkspaces();
   const { mutateAsync: createBoard, isPending } = useCreateBoard();
-  const { mutate: logout } = useLogout();
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [boardTitle, setBoardTitle] = useState("");
@@ -48,42 +45,17 @@ export default function BoardsListing() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f9fafc]">
-      <header
-        className="sticky top-0 z-20 px-4 py-3 text-white shadow-sm"
-        style={{ backgroundColor: TRELLO_NAV_BG }}
-      >
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <TrelloLogo className="size-7 text-white" />
-              <span className="text-lg font-bold">Trello</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {user ? <MemberAvatar user={user} size="md" /> : null}
-            <Button
-              variant="ghost"
-              className="text-white hover:bg-[#ffffff29]"
-              onClick={() => logout()}
-            >
-              Log out
-            </Button>
-          </div>
-        </div>
-      </header>
-
+    <div className="min-h-[calc(100vh-52px)] bg-trello-surface">
       <main className="mx-auto max-w-7xl px-4 py-8">
         <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-sm font-semibold text-[#44546f]">
+            <p className="text-sm font-semibold text-trello-slate">
               {user?.name ? `${user.name}'s workspace` : "Your workspace"}
             </p>
-            <h1 className="text-2xl font-bold text-[#172b4d]">Boards</h1>
+            <h1 className="text-2xl font-bold text-trello-navy">Boards</h1>
           </div>
           <Button
-            className="bg-[#0079bf] hover:bg-[#026aa7]"
+            className="bg-trello-blue hover:bg-trello-blue-dark"
             onClick={() => setIsCreateOpen(true)}
           >
             <Plus className="size-4" />
@@ -115,7 +87,7 @@ export default function BoardsListing() {
               placeholder="Board title"
             />
             <div>
-              <p className="mb-2 text-sm font-semibold text-[#44546f]">Background</p>
+              <p className="mb-2 text-sm font-semibold text-trello-slate">Background</p>
               <div className="grid grid-cols-5 gap-2">
                 {BOARD_BACKGROUNDS.map((color) => (
                   <button
@@ -123,7 +95,7 @@ export default function BoardsListing() {
                     type="button"
                     className={cn(
                       "h-12 rounded-md",
-                      backgroundColor === color && "ring-2 ring-[#0079bf] ring-offset-2",
+                      backgroundColor === color && "ring-2 ring-trello-blue ring-offset-2",
                     )}
                     style={{ backgroundColor: color }}
                     onClick={() => setBackgroundColor(color)}
@@ -133,7 +105,7 @@ export default function BoardsListing() {
               </div>
             </div>
             <Button
-              className="w-full bg-[#0079bf] hover:bg-[#026aa7]"
+              className="w-full bg-trello-blue hover:bg-trello-blue-dark"
               disabled={isPending || !workspaceId}
               onClick={() => void handleCreateBoard()}
             >
@@ -160,14 +132,14 @@ function BoardSection({
   return (
     <section className="mb-10">
       <div className="mb-3 flex items-center gap-2">
-        {starred ? <Star className="size-4 fill-[#f2d600] text-[#f2d600]" /> : null}
-        <h2 className="text-base font-semibold text-[#172b4d]">{title}</h2>
+        {starred ? <Star className="size-4 fill-trello-warn text-trello-warn" /> : null}
+        <h2 className="text-base font-semibold text-trello-navy">{title}</h2>
       </div>
 
       {isLoading ? (
-        <p className="text-sm text-[#44546f]">Loading boards...</p>
+        <p className="text-sm text-trello-slate">Loading boards...</p>
       ) : boards.length === 0 ? (
-        <p className="text-sm text-[#44546f]">No boards yet.</p>
+        <p className="text-sm text-trello-slate">No boards yet.</p>
       ) : (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
           {boards.map((board, index) => (
@@ -202,12 +174,12 @@ function BoardTile({ board }: { board: BOARD }) {
         className="relative h-24 overflow-hidden rounded-md shadow-sm transition hover:brightness-95"
         style={backgroundStyle}
       >
-        <div className="absolute inset-0 bg-[#00000014] opacity-0 transition group-hover:opacity-100" />
+        <div className="absolute inset-0 bg-trello-ink-sm opacity-0 transition group-hover:opacity-100" />
         {board.isStarred ? (
           <Star className="absolute top-2 right-2 size-4 fill-yellow-300 text-yellow-300" />
         ) : null}
       </div>
-      <p className="mt-2 truncate text-sm font-semibold text-[#172b4d]">{board.title}</p>
+      <p className="mt-2 truncate text-sm font-semibold text-trello-navy">{board.title}</p>
     </Link>
   );
 }

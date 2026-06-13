@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { BOARD_FILTERS } from "@/lib/types";
+import type { DropTarget } from "@/components/molecules/board/drag-utils";
 
 type BoardStore = {
   selectedCardId: string | null;
@@ -8,6 +9,7 @@ type BoardStore = {
   activeFilters: BOARD_FILTERS;
   draggingCardId: string | null;
   draggingListId: string | null;
+  dropTarget: DropTarget | null;
   filteredCardIds: Set<string> | null;
   setSelectedCardId: (cardId: string | null) => void;
   openCardModal: (cardId: string) => void;
@@ -17,6 +19,7 @@ type BoardStore = {
   clearFilters: () => void;
   setDraggingCardId: (cardId: string | null) => void;
   setDraggingListId: (listId: string | null) => void;
+  setDropTarget: (target: DropTarget | null) => void;
   setFilteredCardIds: (ids: Set<string> | null) => void;
 };
 
@@ -33,6 +36,7 @@ export const useBoardStore = create<BoardStore>((set) => ({
   activeFilters: defaultFilters,
   draggingCardId: null,
   draggingListId: null,
+  dropTarget: null,
   filteredCardIds: null,
   setSelectedCardId: (cardId) => set({ selectedCardId: cardId }),
   openCardModal: (cardId) =>
@@ -48,5 +52,6 @@ export const useBoardStore = create<BoardStore>((set) => ({
     set({ activeFilters: defaultFilters, filteredCardIds: null }),
   setDraggingCardId: (cardId) => set({ draggingCardId: cardId }),
   setDraggingListId: (listId) => set({ draggingListId: listId }),
+  setDropTarget: (target) => set({ dropTarget: target }),
   setFilteredCardIds: (ids) => set({ filteredCardIds: ids }),
 }));

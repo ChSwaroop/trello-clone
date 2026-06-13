@@ -1,6 +1,7 @@
 import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
 import { api } from "@/lib/api";
 import type { API_SUCCESS, ME_RESPONSE } from "@/lib/types";
+import { AppHeader } from "@/components/molecules/header";
 
 export const Route = createFileRoute("/_authenticated")({
   beforeLoad: async () => {
@@ -16,5 +17,10 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 function AuthenticatedLayout() {
-  return <Outlet />;
+  return (
+    <>
+      <AppHeader />
+      <Outlet />
+    </>
+  );
 }

@@ -56,27 +56,35 @@ export default function useCards(boardId: string) {
         const { data } = await api.post<API_SUCCESS<CARD>>("/cards", payload);
         return data.data;
       },
-      onSuccess: (card) => {
+      onSuccess: (card, variables) => {
         updateBoardCache((prev) => ({
           ...prev,
-          lists: prev.lists.map((list) =>
-            list.id === card.listId
-              ? {
-                  ...list,
-                  cards: [
-                    ...list.cards,
-                    {
-                      ...card,
-                      labels: [],
-                      members: [],
-                      checklists: [],
-                      comments: [],
-                      attachments: [],
-                    },
-                  ],
-                }
-              : list,
-          ),
+          lists: prev.lists.map((list) => {
+            if (list.id !== card.listId) {
+              return list;
+            }
+
+            const newCard = {
+              ...card,
+              labels: [],
+              members: [],
+              checklists: [],
+              comments: [],
+              attachments: [],
+            };
+
+            const insertAt = variables.position ?? list.cards.length;
+            const nextCards = [...list.cards];
+            nextCards.splice(insertAt, 0, newCard);
+
+            return {
+              ...list,
+              cards: nextCards.map((item, index) => ({
+                ...item,
+                position: index + 1,
+              })),
+            };
+          }),
         }));
       },
       onError: (error) => {

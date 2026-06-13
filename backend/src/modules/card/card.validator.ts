@@ -3,6 +3,7 @@ import { z } from "zod";
 export const createCardSchema = z.object({
   listId: z.uuid(),
   title: z.string().min(1).max(255),
+  position: z.number().int().min(0).optional(),
 });
 
 export const updateCardSchema = z.object({

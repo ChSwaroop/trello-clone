@@ -13,7 +13,9 @@ import { Route as UnauthenticatedRouteImport } from "./routes/~_unauthenticated"
 import { Route as AuthenticatedRouteImport } from "./routes/~_authenticated"
 import { Route as IndexRouteImport } from "./routes/~index"
 import { Route as UnauthenticatedLoginRouteImport } from "./routes/~_unauthenticated/~login"
+import { Route as AuthenticatedHomeIndexRouteImport } from "./routes/~_authenticated/~home/~index"
 import { Route as AuthenticatedBoardsIndexRouteImport } from "./routes/~_authenticated/~boards/~index"
+import { Route as AuthenticatedActivityIndexRouteImport } from "./routes/~_authenticated/~activity/~index"
 import { Route as AuthenticatedBoardsBoardIdIndexRouteImport } from "./routes/~_authenticated/~boards/~$boardId/~index"
 
 const UnauthenticatedRoute = UnauthenticatedRouteImport.update({
@@ -34,10 +36,21 @@ const UnauthenticatedLoginRoute = UnauthenticatedLoginRouteImport.update({
   path: "/login",
   getParentRoute: () => UnauthenticatedRoute,
 } as any)
+const AuthenticatedHomeIndexRoute = AuthenticatedHomeIndexRouteImport.update({
+  id: "/home/",
+  path: "/home/",
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedBoardsIndexRoute =
   AuthenticatedBoardsIndexRouteImport.update({
     id: "/boards/",
     path: "/boards/",
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedActivityIndexRoute =
+  AuthenticatedActivityIndexRouteImport.update({
+    id: "/activity/",
+    path: "/activity/",
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedBoardsBoardIdIndexRoute =
@@ -50,13 +63,17 @@ const AuthenticatedBoardsBoardIdIndexRoute =
 export interface FileRoutesByFullPath {
   "/": typeof IndexRoute
   "/login": typeof UnauthenticatedLoginRoute
+  "/activity/": typeof AuthenticatedActivityIndexRoute
   "/boards/": typeof AuthenticatedBoardsIndexRoute
+  "/home/": typeof AuthenticatedHomeIndexRoute
   "/boards/$boardId/": typeof AuthenticatedBoardsBoardIdIndexRoute
 }
 export interface FileRoutesByTo {
   "/": typeof IndexRoute
   "/login": typeof UnauthenticatedLoginRoute
+  "/activity": typeof AuthenticatedActivityIndexRoute
   "/boards": typeof AuthenticatedBoardsIndexRoute
+  "/home": typeof AuthenticatedHomeIndexRoute
   "/boards/$boardId": typeof AuthenticatedBoardsBoardIdIndexRoute
 }
 export interface FileRoutesById {
@@ -65,21 +82,31 @@ export interface FileRoutesById {
   "/_authenticated": typeof AuthenticatedRouteWithChildren
   "/_unauthenticated": typeof UnauthenticatedRouteWithChildren
   "/_unauthenticated/login": typeof UnauthenticatedLoginRoute
+  "/_authenticated/activity/": typeof AuthenticatedActivityIndexRoute
   "/_authenticated/boards/": typeof AuthenticatedBoardsIndexRoute
+  "/_authenticated/home/": typeof AuthenticatedHomeIndexRoute
   "/_authenticated/boards/$boardId/": typeof AuthenticatedBoardsBoardIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: "/" | "/login" | "/boards/" | "/boards/$boardId/"
+  fullPaths:
+    | "/"
+    | "/login"
+    | "/activity/"
+    | "/boards/"
+    | "/home/"
+    | "/boards/$boardId/"
   fileRoutesByTo: FileRoutesByTo
-  to: "/" | "/login" | "/boards" | "/boards/$boardId"
+  to: "/" | "/login" | "/activity" | "/boards" | "/home" | "/boards/$boardId"
   id:
     | "__root__"
     | "/"
     | "/_authenticated"
     | "/_unauthenticated"
     | "/_unauthenticated/login"
+    | "/_authenticated/activity/"
     | "/_authenticated/boards/"
+    | "/_authenticated/home/"
     | "/_authenticated/boards/$boardId/"
   fileRoutesById: FileRoutesById
 }
@@ -119,11 +146,25 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof UnauthenticatedLoginRouteImport
       parentRoute: typeof UnauthenticatedRoute
     }
+    "/_authenticated/home/": {
+      id: "/_authenticated/home/"
+      path: "/home"
+      fullPath: "/home/"
+      preLoaderRoute: typeof AuthenticatedHomeIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     "/_authenticated/boards/": {
       id: "/_authenticated/boards/"
       path: "/boards"
       fullPath: "/boards/"
       preLoaderRoute: typeof AuthenticatedBoardsIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    "/_authenticated/activity/": {
+      id: "/_authenticated/activity/"
+      path: "/activity"
+      fullPath: "/activity/"
+      preLoaderRoute: typeof AuthenticatedActivityIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     "/_authenticated/boards/$boardId/": {
@@ -137,12 +178,16 @@ declare module "@tanstack/react-router" {
 }
 
 interface AuthenticatedRouteChildren {
+  AuthenticatedActivityIndexRoute: typeof AuthenticatedActivityIndexRoute
   AuthenticatedBoardsIndexRoute: typeof AuthenticatedBoardsIndexRoute
+  AuthenticatedHomeIndexRoute: typeof AuthenticatedHomeIndexRoute
   AuthenticatedBoardsBoardIdIndexRoute: typeof AuthenticatedBoardsBoardIdIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedActivityIndexRoute: AuthenticatedActivityIndexRoute,
   AuthenticatedBoardsIndexRoute: AuthenticatedBoardsIndexRoute,
+  AuthenticatedHomeIndexRoute: AuthenticatedHomeIndexRoute,
   AuthenticatedBoardsBoardIdIndexRoute: AuthenticatedBoardsBoardIdIndexRoute,
 }
 

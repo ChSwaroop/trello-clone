@@ -1,9 +1,14 @@
 import type { DraggableAttributes } from "@dnd-kit/core";
 import type { SyntheticListenerMap } from "@dnd-kit/core/dist/hooks/utilities";
 import { useDroppable } from "@dnd-kit/core";
-import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { useState } from "react";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { Fragment, useState } from "react";
 import { ArrowLeftRight, MoreHorizontal, Plus, X } from "lucide-react";
+import CardDropPlaceholder from "@/components/molecules/board/card-drop-placeholder";
+import CardInsertSlot from "@/components/molecules/board/card-insert-slot";
 import SortableCard from "@/components/molecules/board/sortable-card";
 import ListActionsMenu from "@/components/molecules/board/list-actions-menu";
 import { Button } from "@/components/ui/button";
@@ -11,6 +16,8 @@ import { Input } from "@/components/ui/input";
 import useLists from "@/hooks/apis/use-lists";
 import useCards from "@/hooks/apis/use-cards";
 import type { LIST_WITH_CARDS } from "@/lib/types";
+import { cn } from "@/lib/utils";
+import { useBoardStore } from "@/stores/use-board-store";
 
 type ListColumnProps = {
   list: LIST_WITH_CARDS;
@@ -18,10 +25,14 @@ type ListColumnProps = {
   dragHandleProps?: DraggableAttributes & SyntheticListenerMap;
 };
 
-export default function ListColumn({ list, boardId, dragHandleProps }: ListColumnProps) {
+export default function ListColumn({
+  list,
+  boardId,
+  dragHandleProps,
+}: ListColumnProps) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [title, setTitle] = useState(list.title);
-  const [isAddingCard, setIsAddingCard] = useState(false);
+  const [addingCardAt, setAddingCardAt] = useState<number | null>(null);
   const [newCardTitle, setNewCardTitle] = useState("");
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
@@ -30,7 +41,14 @@ export default function ListColumn({ list, boardId, dragHandleProps }: ListColum
   const { useCreateCard } = useCards(boardId);
   const { mutateAsync: updateList } = useUpdateList();
   const { mutateAsync: deleteList } = useDeleteList();
-  const { mutateAsync: createCard, isPending: isCreatingCard } = useCreateCard();
+  const { mutateAsync: createCard, isPending: isCreatingCard } =
+    useCreateCard();
+
+  const draggingCardId = useBoardStore((state) => state.draggingCardId);
+  const dropTarget = useBoardStore((state) => state.dropTarget);
+  const isDropTarget = Boolean(
+    draggingCardId && dropTarget?.listId === list.id,
+  );
 
   const { setNodeRef } = useDroppable({
     id: list.id,
@@ -41,17 +59,72 @@ export default function ListColumn({ list, boardId, dragHandleProps }: ListColum
 
   const handleSaveTitle = async () => {
     const trimmed = title.trim();
-    if (!trimmed || trimmed === list.title) { setTitle(list.title); setIsEditingTitle(false); return; }
+    if (!trimmed || trimmed === list.title) {
+      setTitle(list.title);
+      setIsEditingTitle(false);
+      return;
+    }
     await updateList({ listId: list.id, payload: { title: trimmed } });
     setIsEditingTitle(false);
   };
 
   const handleAddCard = async () => {
     const trimmed = newCardTitle.trim();
-    if (!trimmed) return;
-    await createCard({ listId: list.id, title: trimmed });
+    if (!trimmed || addingCardAt === null) return;
+
+    await createCard({
+      listId: list.id,
+      title: trimmed,
+      position: addingCardAt,
+    });
+    setNewCardTitle("");
+    setAddingCardAt(null);
+  };
+
+  const closeAddCardForm = () => {
+    setAddingCardAt(null);
     setNewCardTitle("");
   };
+
+  const renderAddCardForm = () => (
+    <div className="my-1 space-y-2">
+      <textarea
+        autoFocus
+        value={newCardTitle}
+        onChange={(e) => setNewCardTitle(e.target.value)}
+        placeholder="Enter a title or paste a link"
+        className="w-full resize-none rounded-lg border border-trello-focus bg-white px-3 py-2 text-sm text-trello-navy shadow-sm outline-none placeholder:text-trello-muted"
+        rows={3}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") {
+            closeAddCardForm();
+          }
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            void handleAddCard();
+          }
+        }}
+      />
+      <div className="flex items-center gap-2">
+        <Button
+          variant="trello"
+          size="sm"
+          disabled={isCreatingCard || !newCardTitle.trim()}
+          onClick={() => void handleAddCard()}
+        >
+          Add card
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className="text-trello-slate hover:bg-trello-ink-lg"
+          onClick={closeAddCardForm}
+        >
+          <X className="size-4" />
+        </Button>
+      </div>
+    </div>
+  );
 
   /* Collapsed view */
   if (isCollapsed) {
@@ -61,10 +134,16 @@ export default function ListColumn({ list, boardId, dragHandleProps }: ListColum
         onClick={() => setIsCollapsed(false)}
         title={`${list.title} (${list.cards.length} cards)`}
       >
-        <span className="mb-2 text-xs font-semibold text-trello-slate">{list.cards.length}</span>
+        <span className="mb-2 text-xs font-semibold text-trello-slate">
+          {list.cards.length}
+        </span>
         <span
           className="select-none text-sm font-semibold text-trello-navy"
-          style={{ writingMode: "vertical-rl", textOrientation: "mixed", transform: "rotate(180deg)" }}
+          style={{
+            writingMode: "vertical-rl",
+            textOrientation: "mixed",
+            transform: "rotate(180deg)",
+          }}
         >
           {list.title}
         </span>
@@ -75,14 +154,17 @@ export default function ListColumn({ list, boardId, dragHandleProps }: ListColum
   return (
     <div
       ref={setNodeRef}
-      className="relative flex max-h-full w-[272px] shrink-0 flex-col rounded-xl bg-trello-list"
+      className={cn(
+        "relative flex max-h-full w-[272px] shrink-0 flex-col rounded-xl bg-trello-list transition-shadow",
+        isDropTarget && "ring-2 ring-trello-focus",
+      )}
       data-list-id={list.id}
     >
       {/* Actions menu */}
       {showMenu && (
         <ListActionsMenu
           onClose={() => setShowMenu(false)}
-          onAddCard={() => setIsAddingCard(true)}
+          onAddCard={() => setAddingCardAt(list.cards.length)}
           onDeleteList={() => void deleteList(list.id)}
         />
       )}
@@ -97,7 +179,10 @@ export default function ListColumn({ list, boardId, dragHandleProps }: ListColum
             onBlur={() => void handleSaveTitle()}
             onKeyDown={(e) => {
               if (e.key === "Enter") void handleSaveTitle();
-              if (e.key === "Escape") { setTitle(list.title); setIsEditingTitle(false); }
+              if (e.key === "Escape") {
+                setTitle(list.title);
+                setIsEditingTitle(false);
+              }
             }}
             className="h-8 flex-1 border-trello-focus bg-white text-sm font-semibold text-trello-navy shadow-none"
           />
@@ -142,52 +227,49 @@ export default function ListColumn({ list, boardId, dragHandleProps }: ListColum
       {/* Cards area */}
       <div className="flex min-h-0 flex-1 flex-col px-2 pb-2">
         <div className="scrollbar-thin min-h-[2px] flex-1 overflow-y-auto">
-          <SortableContext items={cardIds} strategy={verticalListSortingStrategy}>
-            {list.cards.map((card) => (
-              <SortableCard key={card.id} card={card} listId={list.id} />
+          <SortableContext
+            items={cardIds}
+            strategy={verticalListSortingStrategy}
+          >
+            {list.cards.map((card, index) => (
+              <Fragment key={card.id}>
+                {dropTarget?.listId === list.id &&
+                dropTarget.index === index ? (
+                  <CardDropPlaceholder />
+                ) : null}
+                <SortableCard card={card} listId={list.id} />
+                {!draggingCardId && index < list.cards.length - 1 ? (
+                  addingCardAt === index + 1 ? (
+                    renderAddCardForm()
+                  ) : (
+                    <CardInsertSlot
+                      onClick={() => {
+                        setAddingCardAt(index + 1);
+                        setNewCardTitle("");
+                      }}
+                    />
+                  )
+                ) : null}
+              </Fragment>
             ))}
+            {dropTarget?.listId === list.id &&
+            dropTarget.index === list.cards.length ? (
+              <CardDropPlaceholder />
+            ) : null}
           </SortableContext>
         </div>
 
         {/* Add card form / button */}
-        {isAddingCard ? (
-          <div className="mt-1 space-y-2">
-            <textarea
-              autoFocus
-              value={newCardTitle}
-              onChange={(e) => setNewCardTitle(e.target.value)}
-              placeholder="Enter a title or paste a link"
-              className="w-full resize-none rounded-lg border border-trello-focus bg-white px-3 py-2 text-sm text-trello-navy shadow-sm outline-none placeholder:text-trello-muted"
-              rows={3}
-              onKeyDown={(e) => {
-                if (e.key === "Escape") { setIsAddingCard(false); setNewCardTitle(""); }
-                if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void handleAddCard(); }
-              }}
-            />
-            <div className="flex items-center gap-2">
-              <Button
-                variant="trello"
-                size="sm"
-                disabled={isCreatingCard || !newCardTitle.trim()}
-                onClick={() => void handleAddCard()}
-              >
-                Add card
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="text-trello-slate hover:bg-trello-ink-lg"
-                onClick={() => { setIsAddingCard(false); setNewCardTitle(""); }}
-              >
-                <X className="size-4" />
-              </Button>
-            </div>
-          </div>
+        {addingCardAt === list.cards.length ? (
+          renderAddCardForm()
         ) : (
           <div className="mt-1 flex items-center gap-1">
             <Button
               variant="ghost"
-              onClick={() => setIsAddingCard(true)}
+              onClick={() => {
+                setAddingCardAt(list.cards.length);
+                setNewCardTitle("");
+              }}
               className="h-auto flex-1 justify-start gap-2 rounded-lg px-2 py-1.5 text-sm text-trello-slate hover:bg-trello-ink-lg"
             >
               <Plus className="size-4" />
@@ -201,7 +283,17 @@ export default function ListColumn({ list, boardId, dragHandleProps }: ListColum
               title="Create from template"
               aria-label="Create from template"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <rect width="18" height="18" x="3" y="3" rx="2" />
                 <path d="M3 9h18" />
                 <path d="M9 21V9" />

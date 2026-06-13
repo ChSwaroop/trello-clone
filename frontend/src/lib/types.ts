@@ -221,6 +221,67 @@ export type ME_RESPONSE = {
   user: USER;
 };
 
+export type CREATE_WORKSPACE_PAYLOAD = {
+  name: string;
+  slug: string;
+};
+
+/* ------------------------------------------------ */
+/* ACTIVITY */
+/* ------------------------------------------------ */
+
+export type ACTIVITY_TYPE =
+  | "BOARD_CREATED"
+  | "BOARD_UPDATED"
+  | "BOARD_CLOSED"
+  | "BOARD_REOPENED"
+  | "WORKSPACE_CREATED"
+  | "WORKSPACE_MEMBER_ADDED"
+  | "WORKSPACE_MEMBER_REMOVED"
+  | "BOARD_MEMBER_ADDED"
+  | "BOARD_MEMBER_REMOVED"
+  | "LIST_CREATED"
+  | "LIST_UPDATED"
+  | "LIST_DELETED"
+  | "LIST_ARCHIVED"
+  | "LIST_RESTORED"
+  | "CARD_CREATED"
+  | "CARD_UPDATED"
+  | "CARD_MOVED"
+  | "CARD_ARCHIVED"
+  | "CARD_DELETED"
+  | "MEMBER_ASSIGNED"
+  | "MEMBER_UNASSIGNED"
+  | "LABEL_ADDED"
+  | "LABEL_REMOVED"
+  | "DUE_DATE_SET"
+  | "DUE_DATE_CLEARED"
+  | "START_DATE_SET"
+  | "ATTACHMENT_ADDED"
+  | "ATTACHMENT_REMOVED"
+  | "COMMENT_CREATED"
+  | "COMMENT_UPDATED"
+  | "COMMENT_DELETED"
+  | "CHECKLIST_CREATED"
+  | "CHECKLIST_UPDATED";
+
+export type ACTIVITY_ITEM = {
+  id: string;
+  type: ACTIVITY_TYPE;
+  message: string;
+  metadata?: Record<string, unknown> | null;
+  createdAt: string;
+  user: USER | null;
+  board: Pick<BOARD, "id" | "title" | "workspaceId"> | null;
+  card: Pick<CARD, "id" | "title"> | null;
+};
+
+export type ACTIVITIES_RESPONSE = {
+  activities: ACTIVITY_ITEM[];
+  total: number;
+  hasMore: boolean;
+};
+
 /* ------------------------------------------------ */
 /* MUTATION PAYLOADS */
 /* ------------------------------------------------ */
@@ -256,6 +317,7 @@ export type REORDER_LISTS_PAYLOAD = {
 export type CREATE_CARD_PAYLOAD = {
   listId: string;
   title: string;
+  position?: number;
 };
 
 export type UPDATE_CARD_PAYLOAD = {

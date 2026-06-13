@@ -23,8 +23,15 @@ export class CardService {
 
     await boardService.assertBoardAccess(list.boardId, userId, "MEMBER");
 
-    const maxPosition = await cardRepository.findMaxPosition(input.listId);
-    const card = await cardRepository.create(input.listId, input.title, maxPosition + 1);
+    const card = await cardRepository.createAtPosition(
+      input.listId,
+      input.title,
+      input.position,
+    );
+
+    if (!card) {
+      throw new AppError("Failed to create card", HTTP_STATUS.BAD_REQUEST);
+    }
 
     await activityService.log({
       type: "CARD_CREATED",

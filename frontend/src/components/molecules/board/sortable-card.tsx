@@ -50,16 +50,16 @@ export default function SortableCard({ card, listId }: SortableCardProps) {
     <div
       ref={setNodeRef}
       style={{
-        transform: CSS.Transform.toString(transform),
-        transition,
+        transform: isDragging ? undefined : CSS.Transform.toString(transform),
+        transition: isDragging ? undefined : transition,
       }}
-      className={cn("mb-2 cursor-pointer", isDragging && "z-20 opacity-40")}
+      className={cn("relative z-0 mb-2", isDragging ? "pointer-events-none" : "cursor-pointer")}
       {...attributes}
       {...listeners}
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
     >
-      <CardPreview card={card} isDragging={isDragging} />
+      <CardPreview card={card} isGhost={isDragging} />
     </div>
   );
 }
