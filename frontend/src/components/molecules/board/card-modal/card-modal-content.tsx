@@ -49,7 +49,7 @@ type Props = {
 export default function CardModalContent({ boardId, card, onClose }: Props) {
   const { useGetBoardDetails } = useBoards();
   const { data } = useGetBoardDetails(boardId);
-  const { useUpdateCard, useDeleteCard, useArchiveCard, useMoveCard } =
+  const { useUpdateCard, useDeleteCard, useArchiveCard, useRestoreCard, useMoveCard } =
     useCards(boardId);
   const {
     useAssignLabel,
@@ -65,7 +65,9 @@ export default function CardModalContent({ boardId, card, onClose }: Props) {
   const { mutateAsync: updateCard } = useUpdateCard();
   const { mutateAsync: deleteCard } = useDeleteCard();
   const { mutateAsync: archiveCard } = useArchiveCard();
+  const { mutateAsync: restoreCard } = useRestoreCard();
   const { mutateAsync: moveCard } = useMoveCard();
+  const isArchived = card.status === "ARCHIVED";
   const { mutateAsync: assignLabel } = useAssignLabel();
   const { mutateAsync: removeLabel } = useRemoveLabel();
   const { mutateAsync: assignMember } = useAssignMember();
@@ -415,9 +417,14 @@ export default function CardModalContent({ boardId, card, onClose }: Props) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem
-                onClick={() => void archiveCard(card.id).then(onClose)}
+                onClick={() =>
+                  void (isArchived
+                    ? restoreCard(card.id)
+                    : archiveCard(card.id)
+                  ).then(onClose)
+                }
               >
-                Archive
+                {isArchived ? "Unarchive Card" : "Archive"}
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive"

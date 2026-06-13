@@ -45,8 +45,13 @@ export const filterCardsQuerySchema = z.object({
   boardId: z.uuid().optional(),
 });
 
+export const getArchivedCardsQuerySchema = z.object({
+  search: z.string().optional(),
+});
+
 export type CreateCardInput = z.infer<typeof createCardSchema>;
 export type UpdateCardInput = z.infer<typeof updateCardSchema>;
 export type MoveCardInput = z.infer<typeof moveCardSchema>;
 export type SearchCardsQuery = z.infer<typeof searchCardsQuerySchema>;
 export type FilterCardsQuery = z.infer<typeof filterCardsQuerySchema>;
+export type GetArchivedCardsQuery = z.infer<typeof getArchivedCardsQuerySchema>;

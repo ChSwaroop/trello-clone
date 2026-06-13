@@ -12,6 +12,8 @@ import {
   createBoardSchema,
   updateBoardSchema,
 } from "./board.validator.js";
+import { getActivitiesQuerySchema } from "../activity/activity.validator.js";
+import { getArchivedCardsQuerySchema } from "../card/card.validator.js";
 
 const boardRoutes = Router();
 
@@ -22,6 +24,16 @@ boardRoutes.get(
   "/:boardId",
   validateRequest({ params: boardIdParamSchema }),
   boardController.getBoardDetails,
+);
+boardRoutes.get(
+  "/:boardId/activities",
+  validateRequest({ params: boardIdParamSchema, query: getActivitiesQuerySchema }),
+  boardController.getBoardActivities,
+);
+boardRoutes.get(
+  "/:boardId/archived-cards",
+  validateRequest({ params: boardIdParamSchema, query: getArchivedCardsQuerySchema }),
+  boardController.getArchivedCards,
 );
 boardRoutes.patch(
   "/:boardId",

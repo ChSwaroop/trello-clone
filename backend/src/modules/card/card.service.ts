@@ -1,6 +1,13 @@
 import { HTTP_STATUS } from "../../shared/constants/http-status.js";
 import { AppError } from "../../shared/utils/app-error.js";
-import { toCardResponse, toMemberResponse } from "../../shared/utils/serializers.js";
+import {
+  toAttachmentResponse,
+  toCardResponse,
+  toChecklistItemResponse,
+  toCommentResponse,
+  toLabelResponse,
+  toMemberResponse,
+} from "../../shared/utils/serializers.js";
 import { activityService } from "../activity/activity.service.js";
 import { boardService } from "../board/board.service.js";
 import { listRepository } from "../list/list.repository.js";
@@ -12,6 +19,26 @@ import type {
   SearchCardsQuery,
   UpdateCardInput,
 } from "./card.validator.js";
+
+type CardWithRelations = NonNullable<Awaited<ReturnType<typeof cardRepository.findWithRelations>>>;
+
+const toCardWithRelationsResponse = (card: CardWithRelations) => ({
+  ...toCardResponse(card),
+  labels: card.labels.map((entry) => toLabelResponse(entry.label)),
+  members: card.members.map((entry) => toMemberResponse(entry.user)),
+  checklists: card.checklists.map((checklist) => ({
+    id: checklist.id,
+    cardId: checklist.cardId,
+    title: checklist.title,
+    createdAt: checklist.createdAt,
+    items: checklist.items.map((item) => toChecklistItemResponse(item)),
+  })),
+  comments: card.comments.map((comment) => toCommentResponse(comment)),
+  attachments: card.attachments.map((attachment) => toAttachmentResponse(attachment)),
+  coverAttachment: card.coverAttachment
+    ? toAttachmentResponse(card.coverAttachment)
+    : undefined,
+});
 
 export class CardService {
   async createCard(input: CreateCardInput, userId: string) {
@@ -200,6 +227,26 @@ export class CardService {
     return toCardResponse(archived);
   }
 
+  async restoreCard(cardId: string, userId: string) {
+    const card = await this.getCardWithAccess(cardId, userId, "MEMBER");
+
+    if (card.status === "ACTIVE") {
+      throw new AppError("Card is not archived", HTTP_STATUS.BAD_REQUEST);
+    }
+
+    const restored = await cardRepository.update(cardId, { status: "ACTIVE" });
+
+    await activityService.log({
+      type: "CARD_UPDATED",
+      message: `Card "${restored.title}" was restored`,
+      boardId: card.list.boardId,
+      cardId: restored.id,
+      userId,
+    });
+
+    return toCardResponse(restored);
+  }
+
   async moveCard(input: MoveCardInput, userId: string) {
     const card = await cardRepository.findById(input.cardId);
 
@@ -280,6 +327,27 @@ export class CardService {
       list: card.list,
       labels: card.labels.map((entry) => entry.label),
       members: card.members.map((entry) => toMemberResponse(entry.user)),
+    }));
+  }
+
+  async getCardDetails(cardId: string, userId: string) {
+    const card = await cardRepository.findWithRelations(cardId);
+
+    if (!card) {
+      throw new AppError("Card not found", HTTP_STATUS.NOT_FOUND);
+    }
+
+    await boardService.assertBoardAccess(card.list.boardId, userId, "OBSERVER");
+    return toCardWithRelationsResponse(card);
+  }
+
+  async getArchivedCards(boardId: string, userId: string, search?: string) {
+    await boardService.assertBoardAccess(boardId, userId, "OBSERVER");
+
+    const cards = await cardRepository.findArchivedByBoardId(boardId, search);
+    return cards.map((card) => ({
+      ...toCardResponse(card),
+      list: card.list,
     }));
   }
 

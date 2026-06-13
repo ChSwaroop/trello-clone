@@ -20,8 +20,29 @@ export class ActivityService {
     return activityRepository.create(input);
   }
 
-  async getBoardActivities(boardId: string) {
-    return activityRepository.findByBoardId(boardId);
+  async getBoardActivities(boardId: string, userId: string, query: GetActivitiesQuery) {
+    await boardService.assertBoardAccess(boardId, userId, "OBSERVER");
+
+    const { activities, total } = await activityRepository.findByBoardId(
+      boardId,
+      query.limit,
+      query.offset,
+    );
+
+    return {
+      activities: activities.map((activity) => ({
+        id: activity.id,
+        type: activity.type,
+        message: activity.message,
+        metadata: activity.metadata,
+        createdAt: activity.createdAt,
+        user: activity.user,
+        board: null,
+        card: activity.card,
+      })),
+      total,
+      hasMore: query.offset + activities.length < total,
+    };
   }
 
   async getCardActivities(cardId: string, userId: string, query: GetActivitiesQuery) {

@@ -37,16 +37,28 @@ export class ActivityRepository {
     });
   }
 
-  async findByBoardId(boardId: string) {
-    return prisma.activity.findMany({
-      where: { boardId },
-      orderBy: { createdAt: "desc" },
-      include: {
-        user: {
-          select: { id: true, name: true, email: true, avatarUrl: true },
+  async findByBoardId(boardId: string, limit: number, offset: number) {
+    const where = { boardId };
+
+    const [activities, total] = await Promise.all([
+      prisma.activity.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip: offset,
+        take: limit,
+        include: {
+          user: {
+            select: { id: true, name: true, email: true, avatarUrl: true },
+          },
+          card: {
+            select: { id: true, title: true },
+          },
         },
-      },
-    });
+      }),
+      prisma.activity.count({ where }),
+    ]);
+
+    return { activities, total };
   }
 
   async findByCardId(cardId: string, limit: number, offset: number) {

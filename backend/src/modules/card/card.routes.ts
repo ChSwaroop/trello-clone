@@ -45,6 +45,11 @@ cardRoutes.get(
   validateRequest({ params: cardParamSchema, query: getActivitiesQuerySchema }),
   cardController.getCardActivities,
 );
+cardRoutes.get(
+  "/:cardId",
+  validateRequest({ params: cardParamSchema }),
+  cardController.getCard,
+);
 cardRoutes.post("/", validateRequest({ body: createCardSchema }), cardController.createCard);
 cardRoutes.patch("/move", validateRequest({ body: moveCardSchema }), cardController.moveCard);
 cardRoutes.post(
@@ -92,6 +97,11 @@ cardRoutes.patch(
   "/:cardId/archive",
   validateRequest({ params: cardParamSchema }),
   cardController.archiveCard,
+);
+cardRoutes.patch(
+  "/:cardId/restore",
+  validateRequest({ params: cardParamSchema }),
+  cardController.restoreCard,
 );
 cardRoutes.patch(
   "/:cardId",

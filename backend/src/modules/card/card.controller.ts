@@ -54,6 +54,15 @@ export class CardController {
     sendSuccess(res, card);
   });
 
+  restoreCard = asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) {
+      throw new AppError("Authentication required", HTTP_STATUS.UNAUTHORIZED);
+    }
+
+    const card = await cardService.restoreCard(getRouteParam(req, "cardId"), req.user.id);
+    sendSuccess(res, card);
+  });
+
   moveCard = asyncHandler(async (req: Request, res: Response) => {
     if (!req.user) {
       throw new AppError("Authentication required", HTTP_STATUS.UNAUTHORIZED);
@@ -96,6 +105,15 @@ export class CardController {
       query,
     );
     sendSuccess(res, result);
+  });
+
+  getCard = asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) {
+      throw new AppError("Authentication required", HTTP_STATUS.UNAUTHORIZED);
+    }
+
+    const card = await cardService.getCardDetails(getRouteParam(req, "cardId"), req.user.id);
+    sendSuccess(res, card);
   });
 }
 

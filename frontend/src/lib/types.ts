@@ -287,6 +287,10 @@ export type ACTIVITIES_RESPONSE = {
   hasMore: boolean;
 };
 
+export type ARCHIVED_CARD = CARD & {
+  list: Pick<LIST, "id" | "title">;
+};
+
 /* ------------------------------------------------ */
 /* MUTATION PAYLOADS */
 /* ------------------------------------------------ */
