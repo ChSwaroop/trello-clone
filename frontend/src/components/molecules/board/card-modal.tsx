@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   AlignLeft,
   Calendar,
@@ -117,6 +117,11 @@ function CardModalContent({
   const [commentText, setCommentText] = useState("");
   const [newChecklistTitle, setNewChecklistTitle] = useState("Checklist");
   const [newItemTitles, setNewItemTitles] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    setTitle(card.title);
+    setDescription(card.description ?? "");
+  }, [card.id, card.title, card.description]);
 
   const checklistProgress = getChecklistProgress(card.checklists);
 

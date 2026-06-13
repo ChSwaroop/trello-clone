@@ -78,7 +78,7 @@ export default function BoardsListing() {
         <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-sm font-semibold text-[#44546f]">
-              {user?.name ?? "Your"}&apos;s workspace
+              {user?.name ? `${user.name}'s workspace` : "Your workspace"}
             </p>
             <h1 className="text-2xl font-bold text-[#172b4d]">Boards</h1>
           </div>
@@ -96,7 +96,7 @@ export default function BoardsListing() {
         ) : null}
 
         <BoardSection
-          title={`${user?.name ?? "Your"}'s boards`}
+          title={user?.name ? `${user.name}'s boards` : "Your boards"}
           boards={boards}
           isLoading={isLoading}
         />

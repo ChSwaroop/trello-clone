@@ -12,9 +12,24 @@ type BoardPageProps = {
 };
 
 export default function BoardPage({ boardId }: BoardPageProps) {
+  return (
+    <ErrorBoundary fallbackTitle="Unable to load board">
+      <Suspense
+        fallback={
+          <div className="flex h-screen items-center justify-center bg-[#0079bf]">
+            <Spinner className="size-8 text-white" />
+          </div>
+        }
+      >
+        <BoardPageContent boardId={boardId} />
+      </Suspense>
+    </ErrorBoundary>
+  );
+}
+
+function BoardPageContent({ boardId }: BoardPageProps) {
   const { useGetBoardDetails } = useBoards();
   const { data } = useGetBoardDetails(boardId);
-
   const backgroundStyle = getBoardBackgroundStyle(
     data.board.backgroundColor,
     data.board.backgroundImageUrl,
@@ -25,19 +40,7 @@ export default function BoardPage({ boardId }: BoardPageProps) {
       <div className="bg-[#0000003d]">
         <BoardHeader boardId={boardId} />
       </div>
-
-      <ErrorBoundary fallbackTitle="Unable to load board">
-        <Suspense
-          fallback={
-            <div className="flex flex-1 items-center justify-center">
-              <Spinner className="size-8 text-white" />
-            </div>
-          }
-        >
-          <BoardCanvas boardId={boardId} />
-        </Suspense>
-      </ErrorBoundary>
-
+      <BoardCanvas boardId={boardId} />
       <CardModal boardId={boardId} />
     </div>
   );

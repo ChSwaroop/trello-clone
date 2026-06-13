@@ -22,7 +22,6 @@ import useBoards from "@/hooks/apis/use-boards";
 import useLists from "@/hooks/apis/use-lists";
 import useCards from "@/hooks/apis/use-cards";
 import type { CARD_WITH_RELATIONS } from "@/lib/types";
-import { getBoardBackgroundStyle } from "@/lib/utils";
 import { useBoardStore } from "@/stores/use-board-store";
 
 type BoardCanvasProps = {
@@ -49,11 +48,6 @@ export default function BoardCanvas({ boardId }: BoardCanvasProps) {
   );
 
   const listIds = useMemo(() => data.lists.map((list) => list.id), [data.lists]);
-
-  const backgroundStyle = getBoardBackgroundStyle(
-    data.board.backgroundColor,
-    data.board.backgroundImageUrl,
-  );
 
   const findCardListId = (cardId: string) => {
     for (const list of data.lists) {
@@ -150,10 +144,7 @@ export default function BoardCanvas({ boardId }: BoardCanvasProps) {
   };
 
   return (
-    <div
-      className="flex min-h-0 flex-1 flex-col overflow-hidden"
-      style={backgroundStyle}
-    >
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}

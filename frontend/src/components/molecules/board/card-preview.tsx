@@ -12,18 +12,15 @@ import MemberAvatar from "@/components/molecules/member-avatar";
 type CardPreviewProps = {
   card: CARD_WITH_RELATIONS;
   isDragging?: boolean;
-  onClick?: () => void;
 };
 
-export default function CardPreview({ card, isDragging, onClick }: CardPreviewProps) {
+export default function CardPreview({ card, isDragging }: CardPreviewProps) {
   const checklistProgress = getChecklistProgress(card.checklists);
   const overdue = isOverdue(card.dueDate, card.dueComplete);
   const dueSoon = isDueSoon(card.dueDate);
 
   return (
-    <button
-      type="button"
-      onClick={onClick}
+    <div
       className={cn(
         "group/card w-full rounded-lg bg-white px-2 py-1.5 text-left shadow-sm ring-1 ring-[#091e4221] transition hover:bg-[#f4f5f7]",
         isDragging && "rotate-2 opacity-90 shadow-lg",
@@ -91,6 +88,6 @@ export default function CardPreview({ card, isDragging, onClick }: CardPreviewPr
           ) : null}
         </div>
       </div>
-    </button>
+    </div>
   );
 }
