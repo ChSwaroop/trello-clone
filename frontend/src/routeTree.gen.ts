@@ -13,8 +13,8 @@ import { Route as UnauthenticatedRouteImport } from "./routes/~_unauthenticated"
 import { Route as AuthenticatedRouteImport } from "./routes/~_authenticated"
 import { Route as IndexRouteImport } from "./routes/~index"
 import { Route as UnauthenticatedLoginRouteImport } from "./routes/~_unauthenticated/~login"
-import { Route as AuthenticatedBoardsBoardIdRouteImport } from "./routes/~_authenticated/~boards/~$boardId"
 import { Route as AuthenticatedBoardsIndexRouteImport } from "./routes/~_authenticated/~boards/~index"
+import { Route as AuthenticatedBoardsBoardIdIndexRouteImport } from "./routes/~_authenticated/~boards/~$boardId/~index"
 
 const UnauthenticatedRoute = UnauthenticatedRouteImport.update({
   id: "/_unauthenticated",
@@ -34,16 +34,16 @@ const UnauthenticatedLoginRoute = UnauthenticatedLoginRouteImport.update({
   path: "/login",
   getParentRoute: () => UnauthenticatedRoute,
 } as any)
-const AuthenticatedBoardsBoardIdRoute =
-  AuthenticatedBoardsBoardIdRouteImport.update({
-    id: "/boards/$boardId",
-    path: "/boards/$boardId",
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
 const AuthenticatedBoardsIndexRoute =
   AuthenticatedBoardsIndexRouteImport.update({
     id: "/boards/",
     path: "/boards/",
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedBoardsBoardIdIndexRoute =
+  AuthenticatedBoardsBoardIdIndexRouteImport.update({
+    id: "/boards/$boardId/",
+    path: "/boards/$boardId/",
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 
@@ -51,13 +51,13 @@ export interface FileRoutesByFullPath {
   "/": typeof IndexRoute
   "/login": typeof UnauthenticatedLoginRoute
   "/boards/": typeof AuthenticatedBoardsIndexRoute
-  "/boards/$boardId": typeof AuthenticatedBoardsBoardIdRoute
+  "/boards/$boardId/": typeof AuthenticatedBoardsBoardIdIndexRoute
 }
 export interface FileRoutesByTo {
   "/": typeof IndexRoute
   "/login": typeof UnauthenticatedLoginRoute
   "/boards": typeof AuthenticatedBoardsIndexRoute
-  "/boards/$boardId": typeof AuthenticatedBoardsBoardIdRoute
+  "/boards/$boardId": typeof AuthenticatedBoardsBoardIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -66,11 +66,11 @@ export interface FileRoutesById {
   "/_unauthenticated": typeof UnauthenticatedRouteWithChildren
   "/_unauthenticated/login": typeof UnauthenticatedLoginRoute
   "/_authenticated/boards/": typeof AuthenticatedBoardsIndexRoute
-  "/_authenticated/boards/$boardId": typeof AuthenticatedBoardsBoardIdRoute
+  "/_authenticated/boards/$boardId/": typeof AuthenticatedBoardsBoardIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: "/" | "/login" | "/boards/" | "/boards/$boardId"
+  fullPaths: "/" | "/login" | "/boards/" | "/boards/$boardId/"
   fileRoutesByTo: FileRoutesByTo
   to: "/" | "/login" | "/boards" | "/boards/$boardId"
   id:
@@ -80,7 +80,7 @@ export interface FileRouteTypes {
     | "/_unauthenticated"
     | "/_unauthenticated/login"
     | "/_authenticated/boards/"
-    | "/_authenticated/boards/$boardId"
+    | "/_authenticated/boards/$boardId/"
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -119,13 +119,6 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof UnauthenticatedLoginRouteImport
       parentRoute: typeof UnauthenticatedRoute
     }
-    "/_authenticated/boards/$boardId": {
-      id: "/_authenticated/boards/$boardId"
-      path: "/boards/$boardId"
-      fullPath: "/boards/$boardId"
-      preLoaderRoute: typeof AuthenticatedBoardsBoardIdRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
     "/_authenticated/boards/": {
       id: "/_authenticated/boards/"
       path: "/boards"
@@ -133,17 +126,24 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthenticatedBoardsIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    "/_authenticated/boards/$boardId/": {
+      id: "/_authenticated/boards/$boardId/"
+      path: "/boards/$boardId"
+      fullPath: "/boards/$boardId/"
+      preLoaderRoute: typeof AuthenticatedBoardsBoardIdIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
 interface AuthenticatedRouteChildren {
   AuthenticatedBoardsIndexRoute: typeof AuthenticatedBoardsIndexRoute
-  AuthenticatedBoardsBoardIdRoute: typeof AuthenticatedBoardsBoardIdRoute
+  AuthenticatedBoardsBoardIdIndexRoute: typeof AuthenticatedBoardsBoardIdIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedBoardsIndexRoute: AuthenticatedBoardsIndexRoute,
-  AuthenticatedBoardsBoardIdRoute: AuthenticatedBoardsBoardIdRoute,
+  AuthenticatedBoardsBoardIdIndexRoute: AuthenticatedBoardsBoardIdIndexRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
