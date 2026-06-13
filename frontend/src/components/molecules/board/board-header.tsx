@@ -1,13 +1,9 @@
-import { Link } from "@tanstack/react-router";
 import {
   ChevronDown,
-  Filter,
-  LayoutGrid,
   ListFilter,
   MoreHorizontal,
   Share2,
   Star,
-  Users,
   X,
   Zap,
 } from "lucide-react";
