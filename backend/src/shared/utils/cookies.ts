@@ -5,7 +5,7 @@ import { COOKIE_NAMES, TOKEN_LIFETIMES } from "../constants/index.js";
 const cookieOptions = {
   httpOnly: true,
   secure: env.NODE_ENV === "production",
-  sameSite: "lax" as const,
+  sameSite: "none" as const, // temp to allow cross-origin requests
 };
 
 export const setAuthCookies = (
