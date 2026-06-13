@@ -24,7 +24,10 @@ export class AuthService {
       throw new AppError("Invalid email or password", HTTP_STATUS.UNAUTHORIZED);
     }
 
-    const isValidPassword = await comparePassword(input.password, user.passwordHash);
+    const isValidPassword = await comparePassword(
+      input.password,
+      user.passwordHash,
+    );
 
     if (!isValidPassword) {
       throw new AppError("Invalid email or password", HTTP_STATUS.UNAUTHORIZED);
@@ -74,10 +77,15 @@ export class AuthService {
     try {
       payload = verifyRefreshToken(refreshToken);
     } catch {
-      throw new AppError("Invalid or expired refresh token", HTTP_STATUS.UNAUTHORIZED);
+      throw new AppError(
+        "Invalid or expired refresh token",
+        HTTP_STATUS.UNAUTHORIZED,
+      );
     }
 
-    const storedToken = await authRepository.findRefreshTokenById(payload.tokenId);
+    const storedToken = await authRepository.findRefreshTokenById(
+      payload.tokenId,
+    );
 
     if (!storedToken || storedToken.userId !== payload.sub) {
       throw new AppError("Invalid refresh token", HTTP_STATUS.UNAUTHORIZED);
@@ -88,7 +96,10 @@ export class AuthService {
       throw new AppError("Refresh token expired", HTTP_STATUS.UNAUTHORIZED);
     }
 
-    const isValidToken = await compareToken(refreshToken, storedToken.tokenHash);
+    const isValidToken = await compareToken(
+      refreshToken,
+      storedToken.tokenHash,
+    );
 
     if (!isValidToken) {
       throw new AppError("Invalid refresh token", HTTP_STATUS.UNAUTHORIZED);
@@ -103,7 +114,11 @@ export class AuthService {
     const newTokenHash = await hashToken(refreshToken);
     const expiresAt = getRefreshTokenExpiry();
 
-    await authRepository.updateRefreshToken(storedToken.id, newTokenHash, expiresAt);
+    await authRepository.updateRefreshToken(
+      storedToken.id,
+      newTokenHash,
+      expiresAt,
+    );
 
     const accessToken = signAccessToken({
       sub: user.id,
@@ -139,7 +154,6 @@ export class AuthService {
 
     return user;
   }
-
 }
 
 export const authService = new AuthService();

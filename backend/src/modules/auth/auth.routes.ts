@@ -6,7 +6,11 @@ import { loginSchema } from "./auth.validator.js";
 
 const authRoutes = Router();
 
-authRoutes.post("/login", validateRequest({ body: loginSchema }), authController.login);
+authRoutes.post(
+  "/login",
+  validateRequest({ body: loginSchema }),
+  authController.login,
+);
 authRoutes.post("/refresh", authController.refresh);
 authRoutes.post("/logout", authController.logout);
 authRoutes.get("/me", authenticateUser, authController.me);
