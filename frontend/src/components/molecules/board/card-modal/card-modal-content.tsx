@@ -21,7 +21,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
@@ -33,6 +32,8 @@ import useCardExtras from "@/hooks/apis/use-card-extras";
 import type { CARD_WITH_RELATIONS } from "@/lib/types";
 import { cn, formatDatesBadge } from "@/lib/utils";
 import AddToCardMenu from "./add-to-card-menu";
+import AttachmentsPanel from "./attachments-panel";
+import CardModalAttachments from "./card-modal-attachments";
 import ChecklistPanel from "./checklist-panel";
 import DatesPanel from "./dates-panel";
 import LabelsPanel from "./labels-panel";
@@ -56,6 +57,9 @@ export default function CardModalContent({ boardId, card, onClose }: Props) {
     useAssignMember,
     useRemoveMember,
     useCreateChecklist,
+    useUploadAttachment,
+    useCreateLinkAttachment,
+    useDeleteAttachment,
   } = useCardExtras(boardId);
 
   const { mutateAsync: updateCard } = useUpdateCard();
@@ -67,6 +71,9 @@ export default function CardModalContent({ boardId, card, onClose }: Props) {
   const { mutateAsync: assignMember } = useAssignMember();
   const { mutateAsync: removeMember } = useRemoveMember();
   const { mutateAsync: createChecklist } = useCreateChecklist();
+  const { mutateAsync: uploadAttachment } = useUploadAttachment();
+  const { mutateAsync: createLinkAttachment } = useCreateLinkAttachment();
+  const { mutateAsync: deleteAttachment } = useDeleteAttachment();
 
   const [title, setTitle] = useState(card.title);
   const [description, setDescription] = useState(card.description ?? "");
@@ -91,8 +98,12 @@ export default function CardModalContent({ boardId, card, onClose }: Props) {
   const [checklistFromAdd, setChecklistFromAdd] = useState(false);
   /** True when the Members panel was opened via Add → Members (shows back arrow). */
   const [membersFromAdd, setMembersFromAdd] = useState(false);
+  /** True when the Attachment panel was opened via Add → Attachment (shows back arrow). */
+  const [attachmentFromAdd, setAttachmentFromAdd] = useState(false);
   /** True when the Members panel was opened from the body + button. */
   const [membersBodyOpen, setMembersBodyOpen] = useState(false);
+  /** True when the Attach panel was opened from the attachments section Add button. */
+  const [attachBodyOpen, setAttachBodyOpen] = useState(false);
 
   const titleTextareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -138,7 +149,24 @@ export default function CardModalContent({ boardId, card, onClose }: Props) {
   const closeToolbar = () => {
     setOpenToolbar(null);
     setMembersBodyOpen(false);
+    setAttachBodyOpen(false);
   };
+
+  const handleUploadFile = (file: File) =>
+    uploadAttachment({ cardId: card.id, file });
+
+  const handleInsertLink = (url: string, displayText?: string) =>
+    createLinkAttachment({
+      cardId: card.id,
+      payload: {
+        url,
+        kind: "LINK",
+        ...(displayText ? { filename: displayText } : {}),
+      },
+    });
+
+  const handleDeleteAttachment = (attachmentId: string) =>
+    deleteAttachment({ attachmentId, cardId: card.id });
 
   const handleAssignMember = (memberId: string) =>
     assignMember({ cardId: card.id, payload: { memberId } });
@@ -156,13 +184,15 @@ export default function CardModalContent({ boardId, card, onClose }: Props) {
           (openToolbar === "labels" && labelsFromAdd) ||
           (openToolbar === "dates" && datesFromAdd) ||
           (openToolbar === "checklist" && checklistFromAdd) ||
-          (openToolbar === "members" && membersFromAdd)
+          (openToolbar === "members" && membersFromAdd) ||
+          (openToolbar === "attachment" && attachmentFromAdd)
         }
         onToggle={() => {
           setLabelsFromAdd(false);
           setDatesFromAdd(false);
           setChecklistFromAdd(false);
           setMembersFromAdd(false);
+          setAttachmentFromAdd(false);
           toggleToolbar("add");
         }}
         onClose={closeToolbar}
@@ -221,6 +251,13 @@ export default function CardModalContent({ boardId, card, onClose }: Props) {
             onAssign={handleAssignMember}
             onRemove={handleRemoveMember}
           />
+        ) : openToolbar === "attachment" && attachmentFromAdd ? (
+          <AttachmentsPanel
+            onBack={() => setOpenToolbar("add")}
+            onClose={closeToolbar}
+            onUploadFile={handleUploadFile}
+            onInsertLink={handleInsertLink}
+          />
         ) : (
           <AddToCardMenu
             onClose={closeToolbar}
@@ -245,10 +282,16 @@ export default function CardModalContent({ boardId, card, onClose }: Props) {
                 setOpenToolbar("members");
                 return;
               }
+              if (key === "attachment") {
+                setAttachmentFromAdd(true);
+                setOpenToolbar("attachment");
+                return;
+              }
               setLabelsFromAdd(false);
               setDatesFromAdd(false);
               setChecklistFromAdd(false);
               setMembersFromAdd(false);
+              setAttachmentFromAdd(false);
               setOpenToolbar(key);
             }}
           />
@@ -298,20 +341,7 @@ export default function CardModalContent({ boardId, card, onClose }: Props) {
     </div>
   );
 
-  const renderAttachmentPanel = (className?: string) =>
-    openToolbar === "attachment" ? (
-      <div className={cn("relative", className)}>
-        <div className="w-fit rounded-lg border border-trello-ink-md bg-trello-card-background p-3 shadow-md">
-          <p className="mb-2 text-xs font-semibold text-trello-slate">
-            Attach a link
-          </p>
-          <Input
-            placeholder="Paste a link…"
-            className="w-60 bg-trello-card-background text-sm"
-          />
-        </div>
-      </div>
-    ) : null;
+  const attachments = card.attachments ?? [];
 
   return (
     <div className="relative flex min-h-0 w-full flex-col">
@@ -417,374 +447,360 @@ export default function CardModalContent({ boardId, card, onClose }: Props) {
           <div className="p-6">
             {/* Title */}
             <div className="flex items-start gap-3 pb-4">
-            <button
-              type="button"
-              onClick={() =>
-                void updateCard({
-                  cardId: card.id,
-                  payload: { dueComplete: !card.dueComplete },
-                })
-              }
-              className={cn(
-                "flex size-5 mt-2 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
-                card.dueComplete
-                  ? "border-trello-success bg-trello-success"
-                  : "border-trello-complete hover:border-trello-blue",
-              )}
-              aria-label={
-                card.dueComplete ? "Mark incomplete" : "Mark complete"
-              }
-            >
-              {card.dueComplete && (
-                <svg
-                  className="size-3.5 text-white"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={3}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-              )}
-            </button>
-
-            <textarea
-              ref={titleTextareaRef}
-              value={title}
-              onChange={(e) => {
-                setTitle(e.target.value);
-                const el = e.target;
-                el.style.height = "auto";
-                el.style.height = `${el.scrollHeight}px`;
-              }}
-              onBlur={() => void saveTitle()}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  e.currentTarget.blur();
+              <button
+                type="button"
+                onClick={() =>
+                  void updateCard({
+                    cardId: card.id,
+                    payload: { dueComplete: !card.dueComplete },
+                  })
                 }
-              }}
-              className="max-h-40 min-h-10 flex-1 resize-none overflow-y-auto bg-transparent text-2xl font-semibold leading-snug text-trello-navy outline-none placeholder:text-trello-slate hover:bg-trello-ink-xs focus:rounded focus:bg-trello-card-background focus:px-2 focus:py-1"
-              rows={1}
-            />
-          </div>
-
-          {/* Toolbar — always in the main column */}
-          {renderToolbar()}
-          {renderAttachmentPanel("-mt-3 mb-5")}
-
-          {/* Labels section */}
-          <div className="mb-5">
-            <p className="mb-1.5 text-xs font-semibold text-trello-slate">
-              Labels
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {card.labels.map((label) => (
-                <button
-                  key={label.id}
-                  type="button"
-                  onClick={() =>
-                    void removeLabel({ cardId: card.id, labelId: label.id })
-                  }
-                  className="flex min-h-[32px] min-w-[48px] items-center rounded px-3 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-80"
-                  style={{ backgroundColor: label.color }}
-                  title={`Remove ${label.name}`}
-                >
-                  {label.name || "\u00A0"}
-                </button>
-              ))}
-
-              {/* + button opens Labels panel as its own popover */}
-              <Popover
-                open={openToolbar === "labels" && !labelsFromAdd}
-                onOpenChange={(open) => {
-                  if (open) {
-                    setLabelsFromAdd(false);
-                    setOpenToolbar("labels");
-                  } else closeToolbar();
-                }}
+                className={cn(
+                  "flex size-5 mt-2 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
+                  card.dueComplete
+                    ? "border-trello-success bg-trello-success"
+                    : "border-trello-complete hover:border-trello-blue",
+                )}
+                aria-label={
+                  card.dueComplete ? "Mark incomplete" : "Mark complete"
+                }
               >
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    className="size-8 bg-trello-ink-sm text-trello-slate hover:bg-trello-ink-lg"
-                    aria-label="Add label"
+                {card.dueComplete && (
+                  <svg
+                    className="size-3.5 text-white"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={3}
                   >
-                    <Plus className="size-4" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent
-                  align="start"
-                  className="w-72 border-trello-ink-md bg-trello-card-background p-0 shadow-lg"
-                >
-                  <LabelsPanel
-                    boardId={boardId}
-                    card={card}
-                    isOpen={openToolbar === "labels" && !labelsFromAdd}
-                    onClose={closeToolbar}
-                    onAssign={(labelId) =>
-                      void assignLabel({
-                        cardId: card.id,
-                        payload: { labelId },
-                      })
-                    }
-                    onRemove={(labelId) =>
-                      void removeLabel({ cardId: card.id, labelId })
-                    }
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-          </div>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                )}
+              </button>
 
-          {/* Members */}
-          {card.members.length > 0 && (
+              <textarea
+                ref={titleTextareaRef}
+                value={title}
+                onChange={(e) => {
+                  setTitle(e.target.value);
+                  const el = e.target;
+                  el.style.height = "auto";
+                  el.style.height = `${el.scrollHeight}px`;
+                }}
+                onBlur={() => void saveTitle()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    e.currentTarget.blur();
+                  }
+                }}
+                className="max-h-40 min-h-10 flex-1 resize-none overflow-y-auto bg-transparent text-2xl font-semibold leading-snug text-trello-navy outline-none placeholder:text-trello-slate hover:bg-trello-ink-xs focus:rounded focus:bg-trello-card-background focus:px-2 focus:py-1"
+                rows={1}
+              />
+            </div>
+
+            {/* Toolbar — always in the main column */}
+            {renderToolbar()}
+
+            {/* Labels section */}
             <div className="mb-5">
               <p className="mb-1.5 text-xs font-semibold text-trello-slate">
-                Members
+                Labels
               </p>
-              <div className="flex flex-wrap items-center gap-1">
-                {card.members.map((member) => (
-                  <MemberAvatar key={member.id} user={member} size="md" />
+              <div className="flex flex-wrap gap-1.5">
+                {card.labels.map((label) => (
+                  <button
+                    key={label.id}
+                    type="button"
+                    onClick={() =>
+                      void removeLabel({ cardId: card.id, labelId: label.id })
+                    }
+                    className="flex min-h-[32px] min-w-[48px] items-center rounded px-3 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-80"
+                    style={{ backgroundColor: label.color }}
+                    title={`Remove ${label.name}`}
+                  >
+                    {label.name || "\u00A0"}
+                  </button>
                 ))}
+
+                {/* + button opens Labels panel as its own popover */}
                 <Popover
-                  open={membersBodyOpen}
+                  open={openToolbar === "labels" && !labelsFromAdd}
                   onOpenChange={(open) => {
                     if (open) {
-                      // close the toolbar chip popover before opening body popover
-                      setOpenToolbar(null);
-                      setMembersFromAdd(false);
-                    }
-                    setMembersBodyOpen(open);
+                      setLabelsFromAdd(false);
+                      setOpenToolbar("labels");
+                    } else closeToolbar();
                   }}
                 >
                   <PopoverTrigger asChild>
                     <Button
                       variant="ghost"
                       size="icon-sm"
-                      className="rounded-full bg-trello-ink-xs text-trello-slate hover:bg-trello-ink-lg"
-                      aria-label="Add member"
+                      className="size-8 bg-trello-ink-sm text-trello-slate hover:bg-trello-ink-lg"
+                      aria-label="Add label"
                     >
-                      <Plus className="size-3.5" />
+                      <Plus className="size-4" />
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent
                     align="start"
                     className="w-72 border-trello-ink-md bg-trello-card-background p-0 shadow-lg"
                   >
-                    <MembersPanel
-                      boardMembers={data.members}
-                      cardMembers={card.members}
-                      onClose={() => setMembersBodyOpen(false)}
-                      onAssign={handleAssignMember}
-                      onRemove={handleRemoveMember}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </div>
-          )}
-
-          {/* Dates section */}
-          {(card.startDate || card.dueDate) && (
-            <div className="mb-5">
-              <p className="mb-1.5 text-xs font-semibold text-trello-slate">
-                Dates
-              </p>
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() =>
-                    void updateCard({
-                      cardId: card.id,
-                      payload: { dueComplete: !card.dueComplete },
-                    })
-                  }
-                  className={cn(
-                    "flex size-4 shrink-0 items-center justify-center rounded border-2 transition-colors",
-                    card.dueComplete
-                      ? "border-trello-success bg-trello-success"
-                      : "border-trello-complete hover:border-trello-blue",
-                  )}
-                  aria-label={
-                    card.dueComplete ? "Mark incomplete" : "Mark complete"
-                  }
-                >
-                  {card.dueComplete && (
-                    <svg
-                      className="size-2.5 text-white"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={3}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
-                  )}
-                </button>
-
-                <Popover
-                  open={openToolbar === "dates" && !datesFromAdd}
-                  onOpenChange={(open) => {
-                    if (open) {
-                      setDatesFromAdd(false);
-                      setOpenToolbar("dates");
-                    } else closeToolbar();
-                  }}
-                >
-                  <PopoverTrigger asChild>
-                    <button
-                      type="button"
-                      className={cn(
-                        "flex items-center gap-1 rounded px-3 py-1.5 text-sm transition-colors",
-                        card.dueComplete
-                          ? "bg-trello-success text-white"
-                          : "bg-trello-ink-sm text-trello-navy hover:bg-trello-ink-lg",
-                      )}
-                    >
-                      <Clock3 className="size-3.5 shrink-0" />
-                      {formatDatesBadge(
-                        card.startDate,
-                        card.dueDate,
-                        card.dueTime ?? undefined,
-                      )}
-                      <ChevronDown className="size-3.5 shrink-0 opacity-60" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    align="start"
-                    className="w-72 border-trello-ink-md bg-trello-card-background p-0 shadow-lg"
-                    side="right"
-                  >
-                    <DatesPanel
+                    <LabelsPanel
+                      boardId={boardId}
                       card={card}
+                      isOpen={openToolbar === "labels" && !labelsFromAdd}
                       onClose={closeToolbar}
-                      onSave={(payload) =>
-                        void updateCard({ cardId: card.id, payload }).then(
-                          closeToolbar,
-                        )
-                      }
-                      onRemove={() =>
-                        void updateCard({
+                      onAssign={(labelId) =>
+                        void assignLabel({
                           cardId: card.id,
-                          payload: {
-                            startDate: null,
-                            dueDate: null,
-                            dueTime: null,
-                          },
-                        }).then(closeToolbar)
+                          payload: { labelId },
+                        })
+                      }
+                      onRemove={(labelId) =>
+                        void removeLabel({ cardId: card.id, labelId })
                       }
                     />
                   </PopoverContent>
                 </Popover>
               </div>
             </div>
-          )}
 
-          {/* Description */}
-          <div className="mb-5">
-            <div className="mb-2 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <svg
-                  className="size-4 text-trello-slate"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M4 6h16M4 12h16M4 18h7"
-                  />
-                </svg>
-                <span className="text-sm font-semibold text-trello-navy">
-                  Description
-                </span>
+            {/* Members */}
+            {card.members.length > 0 && (
+              <div className="mb-5">
+                <p className="mb-1.5 text-xs font-semibold text-trello-slate">
+                  Members
+                </p>
+                <div className="flex flex-wrap items-center gap-1">
+                  {card.members.map((member) => (
+                    <MemberAvatar key={member.id} user={member} size="md" />
+                  ))}
+                  <Popover
+                    open={membersBodyOpen}
+                    onOpenChange={(open) => {
+                      if (open) {
+                        // close the toolbar chip popover before opening body popover
+                        setOpenToolbar(null);
+                        setMembersFromAdd(false);
+                      }
+                      setMembersBodyOpen(open);
+                    }}
+                  >
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        className="rounded-full bg-trello-ink-xs text-trello-slate hover:bg-trello-ink-lg"
+                        aria-label="Add member"
+                      >
+                        <Plus className="size-3.5" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      align="start"
+                      className="w-72 border-trello-ink-md bg-trello-card-background p-0 shadow-lg"
+                    >
+                      <MembersPanel
+                        boardMembers={data.members}
+                        cardMembers={card.members}
+                        onClose={() => setMembersBodyOpen(false)}
+                        onAssign={handleAssignMember}
+                        onRemove={handleRemoveMember}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
-              {!isEditingDescription && (
+            )}
+
+            {/* Dates section */}
+            {(card.startDate || card.dueDate) && (
+              <div className="mb-5">
+                <p className="mb-1.5 text-xs font-semibold text-trello-slate">
+                  Dates
+                </p>
+                <div className="flex items-center gap-1.5">
+                  <Popover
+                    open={openToolbar === "dates" && !datesFromAdd}
+                    onOpenChange={(open) => {
+                      if (open) {
+                        setDatesFromAdd(false);
+                        setOpenToolbar("dates");
+                      } else closeToolbar();
+                    }}
+                  >
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        className={cn(
+                          "flex items-center gap-1 rounded px-3 py-1.5 text-sm transition-colors",
+                          "bg-trello-ink-sm text-trello-navy hover:bg-trello-ink-lg",
+                        )}
+                      >
+                        <Clock3 className="size-3.5 shrink-0" />
+                        {formatDatesBadge(
+                          card.startDate,
+                          card.dueDate,
+                          card.dueTime ?? undefined,
+                        )}
+                        <ChevronDown className="size-3.5 shrink-0 opacity-60" />
+
+                        {card.dueComplete && (
+                          <div className="px-1 py-0.5 rounded-xs bg-trello-success text-black text-xs font-medium">
+                            <p>complete</p>
+                          </div>
+                        )}
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      align="start"
+                      className="w-72 border-trello-ink-md bg-trello-card-background p-0 shadow-lg"
+                      side="right"
+                    >
+                      <DatesPanel
+                        card={card}
+                        onClose={closeToolbar}
+                        onSave={(payload) =>
+                          void updateCard({ cardId: card.id, payload }).then(
+                            closeToolbar,
+                          )
+                        }
+                        onRemove={() =>
+                          void updateCard({
+                            cardId: card.id,
+                            payload: {
+                              startDate: null,
+                              dueDate: null,
+                              dueTime: null,
+                            },
+                          }).then(closeToolbar)
+                        }
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+            )}
+
+            {/* Description */}
+            <div className="mb-5">
+              <div className="mb-2 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <svg
+                    className="size-4 text-trello-slate"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M4 6h16M4 12h16M4 18h7"
+                    />
+                  </svg>
+                  <span className="text-sm font-semibold text-trello-navy">
+                    Description
+                  </span>
+                </div>
+                {!isEditingDescription && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsEditingDescription(true)}
+                    className="text-trello-slate hover:bg-trello-ink-lg"
+                  >
+                    Edit
+                  </Button>
+                )}
+              </div>
+              {isEditingDescription ? (
+                <div className="space-y-2">
+                  <textarea
+                    autoFocus
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Add a more detailed description…"
+                    className="min-h-24 w-full resize-none rounded-lg border border-trello-focus bg-trello-card-background px-3 py-2 text-sm text-trello-navy shadow-sm outline-none placeholder:text-trello-muted"
+                    rows={4}
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      variant="trello"
+                      size="sm"
+                      onClick={() => void saveDescription()}
+                    >
+                      Save
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setDescription(card.description ?? "");
+                        setIsEditingDescription(false);
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : description ? (
+                <p
+                  className="cursor-pointer whitespace-pre-wrap rounded px-3 py-2 text-sm text-trello-navy hover:bg-trello-ink-sm"
+                  onClick={() => setIsEditingDescription(true)}
+                >
+                  {description}
+                </p>
+              ) : (
                 <Button
                   variant="ghost"
-                  size="sm"
                   onClick={() => setIsEditingDescription(true)}
-                  className="text-trello-slate hover:bg-trello-ink-lg"
+                  className="h-auto w-full justify-start rounded-lg bg-trello-ink-xs px-3 py-2.5 text-sm text-trello-muted hover:bg-trello-ink-lg"
                 >
-                  Edit
+                  Add a more detailed description…
                 </Button>
               )}
             </div>
-            {isEditingDescription ? (
-              <div className="space-y-2">
-                <textarea
-                  autoFocus
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Add a more detailed description…"
-                  className="min-h-24 w-full resize-none rounded-lg border border-trello-focus bg-trello-card-background px-3 py-2 text-sm text-trello-navy shadow-sm outline-none placeholder:text-trello-muted"
-                  rows={4}
-                />
-                <div className="flex gap-2">
-                  <Button
-                    variant="trello"
-                    size="sm"
-                    onClick={() => void saveDescription()}
-                  >
-                    Save
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => {
-                      setDescription(card.description ?? "");
-                      setIsEditingDescription(false);
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            ) : description ? (
-              <p
-                className="cursor-pointer whitespace-pre-wrap rounded px-3 py-2 text-sm text-trello-navy hover:bg-trello-ink-sm"
-                onClick={() => setIsEditingDescription(true)}
-              >
-                {description}
-              </p>
-            ) : (
-              <Button
-                variant="ghost"
-                onClick={() => setIsEditingDescription(true)}
-                className="h-auto w-full justify-start rounded-lg bg-trello-ink-xs px-3 py-2.5 text-sm text-trello-muted hover:bg-trello-ink-lg"
-              >
-                Add a more detailed description…
-              </Button>
-            )}
-          </div>
 
-          {/* Checklists */}
-          <div className="space-y-5">
-            {card.checklists.map((checklist) => (
-              <CardModalChecklist
-                key={checklist.id}
-                boardId={boardId}
-                checklist={checklist}
+            {/* Attachments */}
+            {attachments.length > 0 && (
+              <CardModalAttachments
+                attachments={attachments}
+                onUploadFile={handleUploadFile}
+                onInsertLink={handleInsertLink}
+                onDelete={handleDeleteAttachment}
+                attachOpen={attachBodyOpen}
+                onAttachOpenChange={(open) => {
+                  if (open) {
+                    setOpenToolbar(null);
+                    setAttachmentFromAdd(false);
+                  }
+                  setAttachBodyOpen(open);
+                }}
               />
-            ))}
-          </div>
+            )}
 
-          {/* Mobile activity */}
-          <div className="mt-6 pt-2 md:hidden">
-            <CardModalActivity boardId={boardId} card={card} />
-          </div>
+            {/* Checklists */}
+            <div className="space-y-5">
+              {card.checklists.map((checklist) => (
+                <CardModalChecklist
+                  key={checklist.id}
+                  boardId={boardId}
+                  checklist={checklist}
+                />
+              ))}
+            </div>
+
+            {/* Mobile activity */}
+            <div className="mt-6 pt-2 md:hidden">
+              <CardModalActivity boardId={boardId} card={card} />
+            </div>
           </div>
         </div>
 

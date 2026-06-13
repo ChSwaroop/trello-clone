@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { validateRequest } from "../../middleware/validate-request.js";
+import { uploadAttachmentMiddleware } from "../../middleware/upload-attachment.js";
 import { attachmentController } from "../attachment/attachment.controller.js";
 import {
   cardIdParamSchema as attachmentCardParamSchema,
@@ -80,6 +81,12 @@ cardRoutes.post(
   "/:cardId/attachments",
   validateRequest({ params: attachmentCardParamSchema, body: createAttachmentSchema }),
   attachmentController.createAttachment,
+);
+cardRoutes.post(
+  "/:cardId/attachments/upload",
+  validateRequest({ params: attachmentCardParamSchema }),
+  uploadAttachmentMiddleware,
+  attachmentController.uploadFileAttachment,
 );
 cardRoutes.patch(
   "/:cardId/archive",

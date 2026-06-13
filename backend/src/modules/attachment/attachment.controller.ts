@@ -32,6 +32,28 @@ export class AttachmentController {
     sendSuccess(res, attachment, HTTP_STATUS.CREATED);
   });
 
+  uploadFileAttachment = asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) {
+      throw new AppError("Authentication required", HTTP_STATUS.UNAUTHORIZED);
+    }
+
+    if (!req.file) {
+      throw new AppError("No file uploaded", HTTP_STATUS.BAD_REQUEST);
+    }
+
+    const attachment = await attachmentService.uploadFileAttachment(
+      getRouteParam(req, "cardId"),
+      {
+        buffer: req.file.buffer,
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+      },
+      req.user.id,
+    );
+    sendSuccess(res, attachment, HTTP_STATUS.CREATED);
+  });
+
   deleteAttachment = asyncHandler(async (req: Request, res: Response) => {
     if (!req.user) {
       throw new AppError("Authentication required", HTTP_STATUS.UNAUTHORIZED);
@@ -39,6 +61,25 @@ export class AttachmentController {
 
     await attachmentService.deleteAttachment(getRouteParam(req, "attachmentId"), req.user.id);
     sendSuccess(res, { deleted: true });
+  });
+
+  downloadAttachment = asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) {
+      throw new AppError("Authentication required", HTTP_STATUS.UNAUTHORIZED);
+    }
+
+    const { buffer, filename, mimeType } = await attachmentService.getAttachmentDownload(
+      getRouteParam(req, "attachmentId"),
+      req.user.id,
+    );
+
+    const safeFilename = filename.replace(/["\r\n]/g, "");
+    res.setHeader("Content-Type", mimeType);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${safeFilename}"; filename*=UTF-8''${encodeURIComponent(filename)}`,
+    );
+    res.send(buffer);
   });
 }
 

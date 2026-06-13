@@ -384,6 +384,12 @@ export type CREATE_COMMENT_PAYLOAD = {
   content: string;
 };
 
+export type CREATE_LINK_ATTACHMENT_PAYLOAD = {
+  url: string;
+  filename?: string;
+  kind: "LINK";
+};
+
 export type CARD_SEARCH_RESULT = CARD & {
   list: Pick<LIST, "id" | "boardId" | "title">;
   labels?: LABEL[];

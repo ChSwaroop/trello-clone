@@ -5,11 +5,13 @@ import type {
   API_SUCCESS,
   ASSIGN_LABEL_PAYLOAD,
   ASSIGN_MEMBER_PAYLOAD,
+  ATTACHMENT,
   BOARD_DETAILS,
   CREATE_CHECKLIST_ITEM_PAYLOAD,
   CREATE_CHECKLIST_PAYLOAD,
   CREATE_COMMENT_PAYLOAD,
   CREATE_LABEL_PAYLOAD,
+  CREATE_LINK_ATTACHMENT_PAYLOAD,
   CHECKLIST,
   CHECKLIST_ITEM,
   COMMENT,
@@ -462,6 +464,119 @@ export default function useCardExtras(boardId: string) {
       onError: (error) => toast.error(getApiErrorMessage(error)),
     });
 
+  const useUploadAttachment = () =>
+    useMutation({
+      mutationKey: ["upload-attachment", boardId],
+      mutationFn: async ({
+        cardId,
+        file,
+      }: {
+        cardId: string;
+        file: File;
+      }) => {
+        const formData = new FormData();
+        formData.append("file", file);
+        const { data } = await api.post<API_SUCCESS<ATTACHMENT>>(
+          `/cards/${cardId}/attachments/upload`,
+          formData,
+          { headers: { "Content-Type": "multipart/form-data" } },
+        );
+        return data.data;
+      },
+      onSuccess: (attachment, { cardId }) => {
+        updateBoardCache((prev) => ({
+          ...prev,
+          lists: prev.lists.map((list) => ({
+            ...list,
+            cards: list.cards.map((card) =>
+              card.id === cardId
+                ? {
+                    ...card,
+                    attachments: [...(card.attachments ?? []), attachment],
+                  }
+                : card,
+            ),
+          })),
+        }));
+        invalidateCardActivities(cardId);
+      },
+      onError: (error) => toast.error(getApiErrorMessage(error)),
+    });
+
+  const useCreateLinkAttachment = () =>
+    useMutation({
+      mutationKey: ["create-link-attachment", boardId],
+      mutationFn: async ({
+        cardId,
+        payload,
+      }: {
+        cardId: string;
+        payload: CREATE_LINK_ATTACHMENT_PAYLOAD;
+      }) => {
+        const { data } = await api.post<API_SUCCESS<ATTACHMENT>>(
+          `/cards/${cardId}/attachments`,
+          payload,
+        );
+        return data.data;
+      },
+      onSuccess: (attachment, { cardId }) => {
+        updateBoardCache((prev) => ({
+          ...prev,
+          lists: prev.lists.map((list) => ({
+            ...list,
+            cards: list.cards.map((card) =>
+              card.id === cardId
+                ? {
+                    ...card,
+                    attachments: [...(card.attachments ?? []), attachment],
+                  }
+                : card,
+            ),
+          })),
+        }));
+        invalidateCardActivities(cardId);
+      },
+      onError: (error) => toast.error(getApiErrorMessage(error)),
+    });
+
+  const useDeleteAttachment = () =>
+    useMutation({
+      mutationKey: ["delete-attachment", boardId],
+      mutationFn: async ({
+        attachmentId,
+      }: {
+        attachmentId: string;
+        cardId: string;
+      }) => {
+        await api.delete(`/attachments/${attachmentId}`);
+        return attachmentId;
+      },
+      onSuccess: (attachmentId, { cardId }) => {
+        updateBoardCache((prev) => ({
+          ...prev,
+          lists: prev.lists.map((list) => ({
+            ...list,
+            cards: list.cards.map((card) => ({
+              ...card,
+              attachments: (card.attachments ?? []).filter(
+                (item) => item.id !== attachmentId,
+              ),
+              coverAttachmentId:
+                card.coverAttachmentId === attachmentId
+                  ? undefined
+                  : card.coverAttachmentId,
+              coverAttachment:
+                card.coverAttachment?.id === attachmentId
+                  ? undefined
+                  : card.coverAttachment,
+            })),
+          })),
+        }));
+        invalidateCardActivities(cardId);
+      },
+      onError: (error) => toast.error(getApiErrorMessage(error)),
+    });
+
   return {
     useCreateLabel,
     useUpdateLabel,
@@ -477,5 +592,8 @@ export default function useCardExtras(boardId: string) {
     useCreateComment,
     useUpdateComment,
     useDeleteComment,
+    useUploadAttachment,
+    useCreateLinkAttachment,
+    useDeleteAttachment,
   };
 }
