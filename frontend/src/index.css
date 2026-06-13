@@ -60,6 +60,7 @@
   --color-trello-nav: var(--trello-nav);
   --color-trello-nav-foreground: var(--trello-nav-foreground);
   --color-trello-workspace-hero: var(--trello-workspace-hero);
+  --color-trello-card-background: var(--trello-card-background);
 
   /* Trello ink overlays (dark alpha) */
   --color-trello-ink-xs: var(--trello-ink-xs);
@@ -94,6 +95,7 @@
   --trello-nav: #0052cc;
   --trello-nav-foreground: #ffffff;
   --trello-workspace-hero: #e4f7fa;
+  --trello-card-background: #ffffff;
 
   /* Trello ink overlays (dark alpha) */
   --trello-ink-xs: #091e420f;
@@ -190,7 +192,7 @@
   --trello-nav: #0747a6;
   --trello-nav-foreground: #ffffff;
   --trello-workspace-hero: #1d474c;
-
+  --trello-card-background: #242529;
   /* Trello ink overlays — dark mode (white alpha, since backgrounds are dark) */
   --trello-ink-xs: #ffffff08;
   --trello-ink-sm: #ffffff0f;

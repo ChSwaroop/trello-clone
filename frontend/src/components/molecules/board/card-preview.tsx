@@ -28,11 +28,11 @@ export default function CardPreview({
   return (
     <div
       className={cn(
-        "group/card relative w-full rounded-lg bg-[#242529] text-left shadow-sm ring-1 ring-trello-ink-md transition-shadow hover:ring-trello-focus hover:shadow-md",
+        "group/card relative w-full rounded-md bg-trello-card-background text-left shadow-sm ring-1 ring-trello-ink-md transition-shadow hover:ring-trello-focus hover:shadow-md",
         isDragging && "rotate-2 opacity-90 shadow-lg",
         isGhost &&
           "pointer-events-none opacity-40 shadow-none ring-trello-ink-sm",
-        card.coverColor ? "overflow-hidden p-0" : "px-2 py-2",
+        card.coverColor ? "overflow-hidden p-0" : "px-2 py-1",
       )}
     >
       {/* Cover color strip */}
@@ -43,16 +43,11 @@ export default function CardPreview({
         />
       )}
 
-      <div
-        className={cn(
-          "relative",
-          card.coverColor && "px-2 pb-2 pt-2",
-        )}
-      >
+      <div className={cn("relative", card.coverColor && "px-2 pb-2 pt-2")}>
         {/* Mark complete — overlays left edge; content shifts on hover */}
         <button
           type="button"
-          className="absolute top-2 left-1.5 z-10 flex size-4 items-center justify-center rounded-full border-2 border-trello-complete opacity-0 transition-[opacity,transform] duration-200 ease-out group-hover/card:pointer-events-auto group-hover/card:scale-100 group-hover/card:opacity-100 pointer-events-none scale-75 hover:border-trello-blue"
+          className="absolute top-1 z-10 flex size-3.5 items-center justify-center rounded-full border-2 border-trello-complete opacity-0 transition-[opacity,transform] duration-200 ease-out group-hover/card:pointer-events-auto group-hover/card:scale-100 group-hover/card:opacity-100 pointer-events-none scale-75 hover:border-trello-blue"
           aria-label="Mark complete"
           onClick={(e) => e.stopPropagation()}
         />
@@ -74,7 +69,9 @@ export default function CardPreview({
             )}
 
             {/* Title */}
-            <p className="text-sm leading-5 text-trello-navy">{card.title}</p>
+            <p className="wrap-break-word text-sm leading-5 text-trello-navy">
+              {card.title}
+            </p>
 
             {/* Badges row */}
             {(card.dueDate ||

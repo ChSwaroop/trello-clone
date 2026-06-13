@@ -41,7 +41,7 @@ export default function AddListButton({ boardId }: AddListButtonProps) {
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         placeholder="Enter list title…"
-        className="w-full resize-none rounded-lg border border-trello-focus bg-white px-3 py-2 text-sm text-trello-navy shadow-sm outline-none placeholder:text-trello-muted"
+        className="w-full resize-none rounded-lg border border-trello-focus  px-3 py-2 text-sm text-trello-navy shadow-sm outline-none placeholder:text-trello-muted"
         rows={2}
         onKeyDown={(e) => {
           if (e.key === "Enter") {

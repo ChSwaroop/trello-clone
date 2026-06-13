@@ -6,7 +6,8 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { Fragment, useState } from "react";
-import { ArrowLeftRight, MoreHorizontal, Plus, X } from "lucide-react";
+import { motion } from "framer-motion";
+import { Minimize2, MoreHorizontal, Plus, X } from "lucide-react";
 import CardDropPlaceholder from "@/components/molecules/board/card-drop-placeholder";
 import CardInsertSlot from "@/components/molecules/board/card-insert-slot";
 import SortableCard from "@/components/molecules/board/sortable-card";
@@ -23,6 +24,13 @@ type ListColumnProps = {
   list: LIST_WITH_CARDS;
   boardId: string;
   dragHandleProps?: DraggableAttributes & SyntheticListenerMap;
+};
+
+const LIST_EXPANDED_WIDTH = 272;
+const LIST_COLLAPSED_WIDTH = 40;
+const LIST_COLLAPSE_TRANSITION = {
+  duration: 0.28,
+  ease: [0.4, 0, 0.2, 1] as const,
 };
 
 export default function ListColumn({
@@ -86,6 +94,18 @@ export default function ListColumn({
     setNewCardTitle("");
   };
 
+  const handleCollapse = () => {
+    setShowMenu(false);
+    closeAddCardForm();
+    setIsEditingTitle(false);
+    setTitle(list.title);
+    setIsCollapsed(true);
+  };
+
+  const handleExpand = () => {
+    setIsCollapsed(false);
+  };
+
   const renderAddCardForm = () => (
     <div className="my-1 space-y-2">
       <textarea
@@ -93,7 +113,7 @@ export default function ListColumn({
         value={newCardTitle}
         onChange={(e) => setNewCardTitle(e.target.value)}
         placeholder="Enter a title or paste a link"
-        className="w-full resize-none rounded-lg border border-trello-focus bg-white px-3 py-2 text-sm text-trello-navy shadow-sm outline-none placeholder:text-trello-muted"
+        className="w-full resize-none rounded-md border border-trello-focus bg-trello-card-background px-3 py-2 text-sm text-trello-navy shadow-sm outline-none placeholder:text-trello-muted"
         rows={3}
         onKeyDown={(e) => {
           if (e.key === "Escape") {
@@ -126,13 +146,43 @@ export default function ListColumn({
     </div>
   );
 
-  /* Collapsed view */
-  if (isCollapsed) {
-    return (
-      <div
-        className="flex h-fit w-10 shrink-0 cursor-pointer flex-col items-center rounded-xl bg-trello-list py-3 hover:bg-trello-subtle"
-        onClick={() => setIsCollapsed(false)}
-        title={`${list.title} (${list.cards.length} cards)`}
+  return (
+    <motion.div
+      layout
+      ref={setNodeRef}
+      animate={{
+        width: isCollapsed ? LIST_COLLAPSED_WIDTH : LIST_EXPANDED_WIDTH,
+      }}
+      transition={LIST_COLLAPSE_TRANSITION}
+      aria-expanded={!isCollapsed}
+      className={cn(
+        "relative flex shrink-0 flex-col overflow-hidden rounded-xl bg-trello-list transition-shadow",
+        isCollapsed
+          ? "h-fit cursor-pointer hover:bg-trello-subtle"
+          : "max-h-full",
+        isDropTarget && !isCollapsed && "ring-2 ring-trello-focus",
+      )}
+      data-list-id={list.id}
+      onClick={isCollapsed ? handleExpand : undefined}
+      title={
+        isCollapsed ? `${list.title} (${list.cards.length} cards)` : undefined
+      }
+    >
+      {/* Collapsed strip */}
+      <motion.div
+        aria-hidden={!isCollapsed}
+        animate={{ opacity: isCollapsed ? 1 : 0 }}
+        transition={{
+          duration: 0.18,
+          delay: isCollapsed ? 0.1 : 0,
+          ease: "easeOut",
+        }}
+        className={cn(
+          "flex flex-col items-center py-3",
+          isCollapsed
+            ? "relative"
+            : "pointer-events-none absolute inset-0 overflow-hidden",
+        )}
       >
         <span className="mb-2 text-xs font-semibold text-trello-slate">
           {list.cards.length}
@@ -147,161 +197,175 @@ export default function ListColumn({
         >
           {list.title}
         </span>
-      </div>
-    );
-  }
+      </motion.div>
 
-  return (
-    <div
-      ref={setNodeRef}
-      className={cn(
-        "relative flex max-h-full w-[272px] shrink-0 flex-col rounded-xl bg-trello-list transition-shadow",
-        isDropTarget && "ring-2 ring-trello-focus",
-      )}
-      data-list-id={list.id}
-    >
-      {/* Actions menu */}
-      {showMenu && (
-        <ListActionsMenu
-          onClose={() => setShowMenu(false)}
-          onAddCard={() => setAddingCardAt(list.cards.length)}
-          onDeleteList={() => void deleteList(list.id)}
-        />
-      )}
-
-      {/* List header */}
-      <div className="flex items-center gap-1 px-2 pt-2 pb-1">
-        {isEditingTitle ? (
-          <Input
-            autoFocus
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            onBlur={() => void handleSaveTitle()}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") void handleSaveTitle();
-              if (e.key === "Escape") {
-                setTitle(list.title);
-                setIsEditingTitle(false);
-              }
-            }}
-            className="h-8 flex-1 border-trello-focus bg-white text-sm font-semibold text-trello-navy shadow-none"
+      {/* Expanded list */}
+      <motion.div
+        aria-hidden={isCollapsed}
+        animate={{ opacity: isCollapsed ? 0 : 1 }}
+        transition={{
+          duration: 0.18,
+          delay: isCollapsed ? 0 : 0.08,
+          ease: "easeOut",
+        }}
+        className={cn(
+          "flex w-[272px] min-w-[272px] flex-col",
+          isCollapsed
+            ? "pointer-events-none absolute inset-0 overflow-hidden"
+            : "max-h-full min-h-0 flex-1",
+        )}
+      >
+        {/* Actions menu */}
+        {showMenu && (
+          <ListActionsMenu
+            onClose={() => setShowMenu(false)}
+            onAddCard={() => setAddingCardAt(list.cards.length)}
+            onDeleteList={() => void deleteList(list.id)}
           />
-        ) : (
-          <h3
-            className="min-w-0 flex-1 cursor-grab truncate px-2 py-1 text-sm font-semibold text-trello-navy active:cursor-grabbing"
-            onClick={() => setIsEditingTitle(true)}
-            {...dragHandleProps}
-          >
-            {list.title}
-          </h3>
         )}
 
-        {/* Card count */}
-        <span className="shrink-0 text-xs font-semibold text-trello-slate">
-          {list.cards.length > 0 ? list.cards.length : null}
-        </span>
+        {/* List header */}
+        <div className="flex items-center gap-1 px-2 pt-2 pb-1">
+          {isEditingTitle ? (
+            <Input
+              autoFocus
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              onBlur={() => void handleSaveTitle()}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void handleSaveTitle();
+                if (e.key === "Escape") {
+                  setTitle(list.title);
+                  setIsEditingTitle(false);
+                }
+              }}
+              className="h-8 flex-1 border-trello-focus bg-white text-sm font-semibold text-trello-navy shadow-none"
+            />
+          ) : (
+            <h3
+              className="min-w-0 flex-1 cursor-grab truncate px-2 py-1 text-sm font-semibold text-trello-navy active:cursor-grabbing"
+              onClick={() => setIsEditingTitle(true)}
+              {...dragHandleProps}
+            >
+              {list.title}
+            </h3>
+          )}
 
-        {/* Collapse */}
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          className="size-7 shrink-0 text-trello-slate hover:bg-trello-ink-lg"
-          onClick={() => setIsCollapsed(true)}
-          aria-label="Collapse list"
-        >
-          <ArrowLeftRight className="size-3.5" />
-        </Button>
+          {/* Card count */}
+          <span className="shrink-0 text-xs font-semibold text-trello-slate">
+            {list.cards.length > 0 ? list.cards.length : null}
+          </span>
 
-        {/* List actions */}
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          className="size-7 shrink-0 text-trello-slate hover:bg-trello-ink-lg"
-          onClick={() => setShowMenu(true)}
-          aria-label="List actions"
-        >
-          <MoreHorizontal className="size-4" />
-        </Button>
-      </div>
-
-      {/* Cards area */}
-      <div className="flex min-h-0 flex-1 flex-col px-2 pb-2">
-        <div className="scrollbar-thin min-h-[2px] flex-1 overflow-y-auto">
-          <SortableContext
-            items={cardIds}
-            strategy={verticalListSortingStrategy}
+          {/* Collapse */}
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="size-7 shrink-0 text-trello-slate hover:bg-trello-ink-lg"
+            onClick={(event) => {
+              event.stopPropagation();
+              handleCollapse();
+            }}
+            aria-label="Collapse list"
           >
-            {list.cards.map((card, index) => (
-              <Fragment key={card.id}>
-                {dropTarget?.listId === list.id &&
-                dropTarget.index === index ? (
-                  <CardDropPlaceholder />
-                ) : null}
-                <SortableCard card={card} listId={list.id} />
-                {!draggingCardId && index < list.cards.length - 1 ? (
-                  addingCardAt === index + 1 ? (
-                    renderAddCardForm()
-                  ) : (
-                    <CardInsertSlot
-                      onClick={() => {
-                        setAddingCardAt(index + 1);
-                        setNewCardTitle("");
-                      }}
-                    />
-                  )
-                ) : null}
-              </Fragment>
-            ))}
-            {dropTarget?.listId === list.id &&
-            dropTarget.index === list.cards.length ? (
-              <CardDropPlaceholder />
-            ) : null}
-          </SortableContext>
+            <Minimize2 className="size-3.5 rotate-45" />
+          </Button>
+
+          {/* List actions */}
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="size-7 shrink-0 text-trello-slate hover:bg-trello-ink-lg"
+            onClick={() => setShowMenu(true)}
+            aria-label="List actions"
+          >
+            <MoreHorizontal className="size-4" />
+          </Button>
         </div>
 
-        {/* Add card form / button */}
-        {addingCardAt === list.cards.length ? (
-          renderAddCardForm()
-        ) : (
-          <div className="mt-1 flex items-center gap-1">
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setAddingCardAt(list.cards.length);
-                setNewCardTitle("");
-              }}
-              className="h-auto flex-1 justify-start gap-2 rounded-lg px-2 py-1.5 text-sm text-trello-slate hover:bg-trello-ink-lg"
+        {/* Cards area */}
+        <div className="flex min-h-0 flex-1 flex-col px-2 pb-2">
+          <div className="scrollbar-thin min-h-[2px] flex-1 overflow-y-auto">
+            <SortableContext
+              items={cardIds}
+              strategy={verticalListSortingStrategy}
             >
-              <Plus className="size-4" />
-              Add a card
-            </Button>
-            {/* Template shortcut */}
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              className="size-7 text-trello-slate hover:bg-trello-ink-lg"
-              title="Create from template"
-              aria-label="Create from template"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <rect width="18" height="18" x="3" y="3" rx="2" />
-                <path d="M3 9h18" />
-                <path d="M9 21V9" />
-              </svg>
-            </Button>
+              {list.cards.map((card, index) => (
+                <Fragment key={card.id}>
+                  {dropTarget?.listId === list.id &&
+                  dropTarget.index === index ? (
+                    <CardDropPlaceholder />
+                  ) : null}
+                  <div className="relative mb-2">
+                    <SortableCard card={card} listId={list.id} />
+                    {!draggingCardId && index < list.cards.length - 1 ? (
+                      addingCardAt === index + 1 ? null : (
+                        <CardInsertSlot
+                          onClick={() => {
+                            setAddingCardAt(index + 1);
+                            setNewCardTitle("");
+                          }}
+                        />
+                      )
+                    ) : null}
+                  </div>
+                  {!draggingCardId &&
+                  index < list.cards.length - 1 &&
+                  addingCardAt === index + 1
+                    ? renderAddCardForm()
+                    : null}
+                </Fragment>
+              ))}
+              {dropTarget?.listId === list.id &&
+              dropTarget.index === list.cards.length ? (
+                <CardDropPlaceholder />
+              ) : null}
+            </SortableContext>
           </div>
-        )}
-      </div>
-    </div>
+
+          {/* Add card form / button */}
+          {addingCardAt === list.cards.length ? (
+            renderAddCardForm()
+          ) : (
+            <div className="mt-1 flex items-center gap-1">
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setAddingCardAt(list.cards.length);
+                  setNewCardTitle("");
+                }}
+                className="h-auto flex-1 justify-start gap-2 rounded-lg px-2 py-1.5 text-sm text-trello-slate hover:bg-trello-ink-lg"
+              >
+                <Plus className="size-4" />
+                Add a card
+              </Button>
+              {/* Template shortcut */}
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="size-7 text-trello-slate hover:bg-trello-ink-lg"
+                title="Create from template"
+                aria-label="Create from template"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <rect width="18" height="18" x="3" y="3" rx="2" />
+                  <path d="M3 9h18" />
+                  <path d="M9 21V9" />
+                </svg>
+              </Button>
+            </div>
+          )}
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }

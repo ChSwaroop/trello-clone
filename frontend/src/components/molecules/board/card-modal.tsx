@@ -4,13 +4,14 @@ import {
   CheckSquare,
   ChevronDown,
   Clock3,
+  Eye,
   Image,
   MoreHorizontal,
   Paperclip,
   Plus,
   Tag,
   Trash2,
-  Users,
+  UserPlus,
   X,
 } from "lucide-react";
 import MemberAvatar from "@/components/molecules/member-avatar";
@@ -65,9 +66,9 @@ export default function CardModal({ boardId }: CardModalProps) {
     <Dialog open={isOpen} onOpenChange={(open) => !open && closeCardModal()}>
       <DialogContent
         showCloseButton={false}
-        className="max-h-[90vh] max-w-[768px] overflow-y-auto border-none bg-trello-surface p-0"
+        className="flex max-h-[90vh] max-w-[900px] flex-col overflow-hidden border-none bg-trello-surface p-0"
       >
-        <DialogTitle className="sr-only">{card.title}asdsd</DialogTitle>
+        <DialogTitle className="sr-only">{card.title}</DialogTitle>
         <CardModalContent
           boardId={boardId}
           card={card}
@@ -93,7 +94,7 @@ function CardModalContent({
 }) {
   const { useGetBoardDetails } = useBoards();
   const { data } = useGetBoardDetails(boardId);
-  const { useUpdateCard, useDeleteCard, useArchiveCard } = useCards(boardId);
+  const { useUpdateCard, useDeleteCard, useArchiveCard, useMoveCard } = useCards(boardId);
   const {
     useAssignLabel,
     useRemoveLabel,
@@ -105,6 +106,7 @@ function CardModalContent({
   const { mutateAsync: updateCard } = useUpdateCard();
   const { mutateAsync: deleteCard } = useDeleteCard();
   const { mutateAsync: archiveCard } = useArchiveCard();
+  const { mutateAsync: moveCard } = useMoveCard();
   const { mutateAsync: assignLabel } = useAssignLabel();
   const { mutateAsync: removeLabel } = useRemoveLabel();
   const { mutateAsync: assignMember } = useAssignMember();
@@ -146,68 +148,48 @@ function CardModalContent({
     setOpenToolbar((prev) => (prev === key ? null : key));
 
   return (
-    <div className="relative flex flex-col">
-      {/* Cover */}
+    <div className="relative flex min-h-0 flex-1 flex-col">
       {card.coverColor && (
         <div
-          className="h-32 w-full rounded-t-lg"
+          className="h-24 w-full shrink-0"
           style={{ backgroundColor: card.coverColor }}
         />
       )}
 
-      {/* Title row */}
-      <div className="flex items-start gap-2 px-4 pt-4 pb-1">
-        {/* Circle complete toggle */}
-        <button
-          type="button"
-          onClick={() =>
-            void updateCard({
-              cardId: card.id,
-              payload: { dueComplete: !card.dueComplete },
-            })
-          }
-          className={cn(
-            "mt-1 flex size-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
-            card.dueComplete
-              ? "border-trello-success bg-trello-success"
-              : "border-trello-slate hover:border-trello-blue",
-          )}
-          aria-label={card.dueComplete ? "Mark incomplete" : "Mark complete"}
-        >
-          {card.dueComplete && (
-            <svg
-              className="size-3 text-white"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={3}
+      {/* Top bar: list dropdown + action icons */}
+      <div className="flex shrink-0 items-center justify-between px-4 pt-3 pb-1">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 gap-1 px-2 text-sm font-medium text-trello-navy hover:bg-trello-ink-lg"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
-          )}
-        </button>
+              {currentList?.title ?? "List"}
+              <ChevronDown className="size-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start">
+            {data.lists.map((list) => (
+              <DropdownMenuItem
+                key={list.id}
+                disabled={list.id === card.listId}
+                onClick={() =>
+                  void moveCard({
+                    cardId: card.id,
+                    sourceListId: card.listId,
+                    destinationListId: list.id,
+                    newPosition: list.cards.length,
+                  })
+                }
+              >
+                {list.title}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
 
-        {/* Editable title */}
-        <textarea
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          onBlur={() => void saveTitle()}
-          className="min-h-[32px] flex-1 resize-none bg-transparent text-xl font-semibold leading-snug text-trello-navy outline-none placeholder:text-trello-slate hover:bg-trello-ink-xs focus:rounded focus:bg-white focus:px-2 focus:py-1"
-          rows={1}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              e.currentTarget.blur();
-            }
-          }}
-        />
-
-        {/* Top-right actions */}
-        <div className="flex shrink-0 items-center gap-0.5">
+        <div className="flex items-center gap-0.5">
           <Button
             variant="ghost"
             size="icon-sm"
@@ -216,8 +198,14 @@ function CardModalContent({
           >
             <Image className="size-4" />
           </Button>
-
-          {/* ··· more menu */}
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="text-trello-slate hover:bg-trello-ink-lg"
+            aria-label="Watch"
+          >
+            <Eye className="size-4" />
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -248,7 +236,6 @@ function CardModalContent({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-
           <Button
             variant="ghost"
             size="icon-sm"
@@ -261,20 +248,62 @@ function CardModalContent({
         </div>
       </div>
 
-      {/* Breadcrumb: in list */}
-      <div className="px-11 pb-2">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-auto gap-1 px-2 py-0.5 text-xs text-trello-slate hover:bg-trello-ink-lg hover:underline"
-        >
-          {currentList?.title ?? "List"}
-          <ChevronDown className="size-3" />
-        </Button>
-      </div>
+      {/* Two-column body */}
+      <div className="flex min-h-0 flex-1">
+        {/* LEFT: card details */}
+        <div className="scrollbar-thin min-w-0 flex-[3] overflow-y-auto px-4 pb-6">
+          {/* Title */}
+          <div className="flex items-start gap-3 pb-3">
+            <button
+              type="button"
+              onClick={() =>
+                void updateCard({
+                  cardId: card.id,
+                  payload: { dueComplete: !card.dueComplete },
+                })
+              }
+              className={cn(
+                "mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
+                card.dueComplete
+                  ? "border-trello-success bg-trello-success"
+                  : "border-trello-complete hover:border-trello-blue",
+              )}
+              aria-label={card.dueComplete ? "Mark incomplete" : "Mark complete"}
+            >
+              {card.dueComplete && (
+                <svg
+                  className="size-3.5 text-white"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={3}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              )}
+            </button>
 
-      {/* Toolbar */}
-      <div className="relative flex flex-wrap items-center gap-1 px-11 pb-3">
+            <textarea
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              onBlur={() => void saveTitle()}
+              className="min-h-[36px] flex-1 resize-none bg-transparent text-xl font-semibold leading-snug text-trello-navy outline-none placeholder:text-trello-slate hover:bg-trello-ink-xs focus:rounded focus:bg-trello-card-background focus:px-2 focus:py-1"
+              rows={1}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  e.currentTarget.blur();
+                }
+              }}
+            />
+          </div>
+
+          {/* Toolbar */}
+          <div className="relative flex flex-wrap items-center gap-1.5 pb-4">
         {/* +Add dropdown */}
         <ToolbarButton
           icon={Plus}
@@ -308,7 +337,7 @@ function CardModalContent({
               },
               {
                 key: "members",
-                icon: Users,
+                icon: UserPlus,
                 label: "Members",
                 desc: "Assign members",
               },
@@ -341,7 +370,7 @@ function CardModalContent({
 
         {/* Dates */}
         <ToolbarButton
-          icon={Calendar}
+          icon={Clock3}
           label="Dates"
           isOpen={openToolbar === "dates"}
           onToggle={() => toggleToolbar("dates")}
@@ -365,7 +394,7 @@ function CardModalContent({
                     },
                   })
                 }
-                className="h-8 bg-white text-sm"
+                className="h-8 bg-trello-card-background text-sm"
               />
             </div>
             <div className="space-y-1">
@@ -383,7 +412,7 @@ function CardModalContent({
                     },
                   })
                 }
-                className="h-8 bg-white text-sm"
+                className="h-8 bg-trello-card-background text-sm"
               />
             </div>
             {card.dueDate && (
@@ -420,7 +449,7 @@ function CardModalContent({
               value={newChecklistTitle}
               onChange={(e) => setNewChecklistTitle(e.target.value)}
               placeholder="Checklist"
-              className="bg-white text-sm"
+              className="bg-trello-card-background text-sm"
             />
             <Button
               variant="trello"
@@ -440,7 +469,7 @@ function CardModalContent({
 
         {/* Members */}
         <ToolbarButton
-          icon={Users}
+          icon={UserPlus}
           label="Members"
           isOpen={openToolbar === "members"}
           onToggle={() => toggleToolbar("members")}
@@ -482,26 +511,6 @@ function CardModalContent({
           </div>
         </ToolbarButton>
 
-        {/* Labels */}
-        <ToolbarButton
-          icon={Tag}
-          label="Labels"
-          isOpen={openToolbar === "labels"}
-          onToggle={() => toggleToolbar("labels")}
-          onClose={() => setOpenToolbar(null)}
-        >
-          <LabelPicker
-            boardId={boardId}
-            card={card}
-            onAssign={(labelId) =>
-              void assignLabel({ cardId: card.id, payload: { labelId } })
-            }
-            onRemove={(labelId) =>
-              void removeLabel({ cardId: card.id, labelId })
-            }
-          />
-        </ToolbarButton>
-
         {/* Attachment */}
         <ToolbarButton
           icon={Paperclip}
@@ -514,53 +523,60 @@ function CardModalContent({
             <p className="mb-2 text-xs font-semibold text-trello-slate">
               Attach a link
             </p>
-            <Input placeholder="Paste a link…" className="bg-white text-sm" />
+            <Input placeholder="Paste a link…" className="bg-trello-card-background text-sm" />
           </div>
         </ToolbarButton>
-      </div>
+          </div>
 
-      {/* Two-column body */}
-      <div className="flex gap-4 px-4 pb-6">
-        {/* LEFT: metadata + description + checklists */}
-        <div className="min-w-0 flex-1 space-y-5">
-          {/* Labels */}
-          {card.labels.length > 0 && (
-            <div>
-              <p className="mb-1.5 text-xs font-semibold text-trello-slate">
-                Labels
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {card.labels.map((label) => (
-                  <button
-                    key={label.id}
-                    type="button"
-                    onClick={() =>
-                      void removeLabel({ cardId: card.id, labelId: label.id })
-                    }
-                    className="flex min-w-[48px] items-center rounded px-3 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-80"
-                    style={{ backgroundColor: label.color }}
-                    title={`Remove ${label.name}`}
-                  >
-                    {label.name}
-                  </button>
-                ))}
-                {/* Add label */}
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  className="bg-trello-ink-xs text-trello-slate hover:bg-trello-ink-lg"
-                  onClick={() => toggleToolbar("labels")}
-                  aria-label="Add label"
+          {/* Labels — always visible */}
+          <div className="mb-5">
+            <p className="mb-1.5 text-xs font-semibold text-trello-slate">
+              Labels
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {card.labels.map((label) => (
+                <button
+                  key={label.id}
+                  type="button"
+                  onClick={() =>
+                    void removeLabel({ cardId: card.id, labelId: label.id })
+                  }
+                  className="flex min-h-[32px] min-w-[48px] items-center rounded px-3 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-80"
+                  style={{ backgroundColor: label.color }}
+                  title={`Remove ${label.name}`}
                 >
-                  <Plus className="size-4" />
-                </Button>
-              </div>
+                  {label.name || "\u00A0"}
+                </button>
+              ))}
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="size-8 bg-trello-ink-sm text-trello-slate hover:bg-trello-ink-lg"
+                onClick={() => toggleToolbar("labels")}
+                aria-label="Add label"
+              >
+                <Plus className="size-4" />
+              </Button>
             </div>
-          )}
+            {openToolbar === "labels" && (
+              <div className="mt-2 w-fit rounded-lg border border-trello-ink-md bg-trello-card-background shadow-md">
+                <LabelPicker
+                  boardId={boardId}
+                  card={card}
+                  onAssign={(labelId) =>
+                    void assignLabel({ cardId: card.id, payload: { labelId } })
+                  }
+                  onRemove={(labelId) =>
+                    void removeLabel({ cardId: card.id, labelId })
+                  }
+                />
+              </div>
+            )}
+          </div>
 
           {/* Members */}
           {card.members.length > 0 && (
-            <div>
+            <div className="mb-5">
               <p className="mb-1.5 text-xs font-semibold text-trello-slate">
                 Members
               </p>
@@ -595,7 +611,7 @@ function CardModalContent({
 
           {/* Due date */}
           {card.dueDate && (
-            <div>
+            <div className="mb-5">
               <p className="mb-1.5 text-xs font-semibold text-trello-slate">
                 Due date
               </p>
@@ -621,7 +637,7 @@ function CardModalContent({
           )}
 
           {/* Description */}
-          <div>
+          <div className="mb-5">
             <div className="mb-2 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <svg
@@ -659,7 +675,7 @@ function CardModalContent({
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Add a more detailed description…"
-                  className="min-h-24 w-full resize-none rounded-lg border border-trello-focus bg-white px-3 py-2 text-sm text-trello-navy shadow-sm outline-none placeholder:text-trello-muted"
+                  className="min-h-24 w-full resize-none rounded-lg border border-trello-focus bg-trello-card-background px-3 py-2 text-sm text-trello-navy shadow-sm outline-none placeholder:text-trello-muted"
                   rows={4}
                 />
                 <div className="flex gap-2">
@@ -701,6 +717,7 @@ function CardModalContent({
           </div>
 
           {/* Checklists */}
+          <div className="space-y-5">
           {card.checklists.map((checklist) => (
             <CardModalChecklist
               key={checklist.id}
@@ -708,10 +725,11 @@ function CardModalContent({
               checklist={checklist}
             />
           ))}
+          </div>
         </div>
 
         {/* RIGHT: comments & activity */}
-        <div className="w-[220px] shrink-0">
+        <div className="scrollbar-thin flex-[2] shrink-0 overflow-y-auto border-l border-trello-ink-md px-4 pt-1 pb-6">
           <CardModalActivity boardId={boardId} card={card} />
         </div>
       </div>
@@ -750,8 +768,8 @@ function ToolbarButton({
           variant="ghost"
           size="sm"
           className={cn(
-            "gap-1.5 text-trello-slate hover:bg-trello-ink-lg",
-            active && "bg-trello-ink-sm",
+            "h-8 gap-1.5 rounded-md bg-trello-ink-sm px-3 text-trello-slate hover:bg-trello-ink-lg",
+            active && "bg-trello-ink-md",
           )}
         >
           <Icon className="size-4" />

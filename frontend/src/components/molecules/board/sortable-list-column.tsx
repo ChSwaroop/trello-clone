@@ -2,6 +2,7 @@ import type { DraggableAttributes } from "@dnd-kit/core";
 import type { SyntheticListenerMap } from "@dnd-kit/core/dist/hooks/utilities";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { motion } from "framer-motion";
 import ListColumn from "@/components/molecules/board/list-column";
 import type { LIST_WITH_CARDS } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -24,7 +25,8 @@ export default function SortableListColumn({ list, boardId }: SortableListColumn
   } as DraggableAttributes & SyntheticListenerMap;
 
   return (
-    <div
+    <motion.div
+      layout
       ref={setNodeRef}
       style={{
         transform: CSS.Transform.toString(transform),
@@ -33,6 +35,6 @@ export default function SortableListColumn({ list, boardId }: SortableListColumn
       className={cn(isDragging && "opacity-60")}
     >
       <ListColumn list={list} boardId={boardId} dragHandleProps={dragHandleProps} />
-    </div>
+    </motion.div>
   );
 }

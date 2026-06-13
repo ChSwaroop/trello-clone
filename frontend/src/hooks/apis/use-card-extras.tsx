@@ -311,6 +311,63 @@ export default function useCardExtras(boardId: string) {
       onError: (error) => toast.error(getApiErrorMessage(error)),
     });
 
+  const useUpdateComment = () =>
+    useMutation({
+      mutationKey: ["update-comment", boardId],
+      mutationFn: async ({
+        commentId,
+        payload,
+      }: {
+        commentId: string;
+        payload: { content: string };
+      }) => {
+        const { data } = await api.patch<API_SUCCESS<COMMENT>>(
+          `/comments/${commentId}`,
+          payload,
+        );
+        return data.data;
+      },
+      onSuccess: (comment) => {
+        updateBoardCache((prev) => ({
+          ...prev,
+          lists: prev.lists.map((list) => ({
+            ...list,
+            cards: list.cards.map((card) => ({
+              ...card,
+              comments: (card.comments ?? []).map((item) =>
+                item.id === comment.id ? comment : item,
+              ),
+            })),
+          })),
+        }));
+      },
+      onError: (error) => toast.error(getApiErrorMessage(error)),
+    });
+
+  const useDeleteComment = () =>
+    useMutation({
+      mutationKey: ["delete-comment", boardId],
+      mutationFn: async (commentId: string) => {
+        await api.delete(`/comments/${commentId}`);
+        return commentId;
+      },
+      onSuccess: (commentId) => {
+        updateBoardCache((prev) => ({
+          ...prev,
+          lists: prev.lists.map((list) => ({
+            ...list,
+            cards: list.cards.map((card) => ({
+              ...card,
+              comments: (card.comments ?? []).filter(
+                (item) => item.id !== commentId,
+              ),
+            })),
+          })),
+        }));
+      },
+      onError: (error) => toast.error(getApiErrorMessage(error)),
+    });
+
   return {
     useCreateLabel,
     useAssignLabel,
@@ -321,5 +378,7 @@ export default function useCardExtras(boardId: string) {
     useCreateChecklistItem,
     useUpdateChecklistItem,
     useCreateComment,
+    useUpdateComment,
+    useDeleteComment,
   };
 }

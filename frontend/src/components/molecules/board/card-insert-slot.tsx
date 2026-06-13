@@ -6,21 +6,29 @@ type CardInsertSlotProps = {
   className?: string;
 };
 
-export default function CardInsertSlot({ onClick, className }: CardInsertSlotProps) {
+export default function CardInsertSlot({
+  onClick,
+  className,
+}: CardInsertSlotProps) {
   return (
-    <div className={cn("relative z-20 h-0", className)}>
-      <div className="group/slot absolute inset-x-0 -top-3 -bottom-3 flex items-center justify-center">
+    <div
+      className={cn(
+        "pointer-events-none absolute inset-x-0 -bottom-1 z-20 h-0",
+        className,
+      )}
+    >
+      <div className="group/slot pointer-events-auto absolute inset-x-0 -top-2.5 -bottom-2.5 flex items-center justify-center">
         <button
           type="button"
           onClick={onClick}
           aria-label="Add card here"
           className="relative z-20 flex w-full items-center opacity-0 transition-opacity group-hover/slot:opacity-100 focus-visible:opacity-100"
         >
-          <span className="h-px flex-1 border-t border-dashed border-trello-slate/60" />
-          <span className="mx-1 flex size-6 shrink-0 items-center justify-center rounded bg-trello-ink-lg text-trello-slate shadow-sm hover:bg-trello-ink-xl">
-            <Plus className="size-3.5" />
+          <span className="h-px flex-1 border-t border-dashed border-trello-slate/50" />
+          <span className="mx-1.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-background text-trello-slate shadow-sm transition-colors">
+            <Plus className="size-3.5 stroke-[2.5]" />
           </span>
-          <span className="h-px flex-1 border-t border-dashed border-trello-slate/60" />
+          <span className="h-px flex-1 border-t border-dashed border-trello-slate/50" />
         </button>
       </div>
     </div>

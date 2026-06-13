@@ -11,7 +11,7 @@ export function AppHeader() {
         <Link to="/home" className="flex items-center gap-2">
           {/* Back to boards */}
           <LayoutGrid className="size-4" />
-          <TrelloLogo className="size-7 text-trello-nav-foreground" />
+          <TrelloLogo className="size-7 text-trello-nav-foreground rounded-xl" />
           <span className="text-sm font-bold text-muted-foreground">
             Trello
           </span>

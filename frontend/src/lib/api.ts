@@ -38,7 +38,6 @@ api.interceptors.response.use(
 
     if (
       error.response?.status === 401 &&
-      error.response.data?.message === "Invalid or expired access token" &&
       originalRequest &&
       !originalRequest._retry &&
       !originalRequest.url?.includes("/auth/login") &&
@@ -59,7 +58,10 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError as Error);
-        if (typeof window !== "undefined" && !window.location.pathname.includes("/login")) {
+        if (
+          typeof window !== "undefined" &&
+          !window.location.pathname.includes("/login")
+        ) {
           window.location.href = "/login";
         }
         return Promise.reject(refreshError);
@@ -72,7 +74,10 @@ api.interceptors.response.use(
   },
 );
 
-export function getApiErrorMessage(error: unknown, fallback = "Something went wrong") {
+export function getApiErrorMessage(
+  error: unknown,
+  fallback = "Something went wrong",
+) {
   if (axios.isAxiosError<API_ERROR>(error)) {
     return error.response?.data?.message ?? fallback;
   }
