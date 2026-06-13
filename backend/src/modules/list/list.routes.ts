@@ -2,8 +2,10 @@ import { Router } from "express";
 import { validateRequest } from "../../middleware/validate-request.js";
 import { listController } from "./list.controller.js";
 import {
+  copyListSchema,
   createListSchema,
   listIdParamSchema,
+  moveListSchema,
   reorderListsSchema,
   updateListSchema,
 } from "./list.validator.js";
@@ -15,6 +17,16 @@ listRoutes.patch(
   "/reorder",
   validateRequest({ body: reorderListsSchema }),
   listController.reorderLists,
+);
+listRoutes.post(
+  "/:listId/copy",
+  validateRequest({ params: listIdParamSchema, body: copyListSchema }),
+  listController.copyList,
+);
+listRoutes.patch(
+  "/:listId/move",
+  validateRequest({ params: listIdParamSchema, body: moveListSchema }),
+  listController.moveList,
 );
 listRoutes.patch(
   "/:listId",

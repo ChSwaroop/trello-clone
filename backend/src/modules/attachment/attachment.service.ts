@@ -1,12 +1,24 @@
 import { HTTP_STATUS } from "../../shared/constants/http-status.js";
 import { AppError } from "../../shared/utils/app-error.js";
 import { toAttachmentResponse } from "../../shared/utils/serializers.js";
-import { createSignedUploadUrl, deleteObject } from "../../shared/utils/supabase-storage.js";
+import {
+  createSignedUploadUrl,
+  deleteObject,
+  downloadObject,
+  uploadObject,
+} from "../../shared/utils/supabase-storage.js";
 import { activityService } from "../activity/activity.service.js";
 import { boardService } from "../board/board.service.js";
 import { cardRepository } from "../card/card.repository.js";
 import { attachmentRepository } from "./attachment.repository.js";
 import type { CreateAttachmentInput, SignUploadInput } from "./attachment.validator.js";
+
+type UploadedFile = {
+  buffer: Buffer;
+  originalname: string;
+  mimetype: string;
+  size: number;
+};
 
 export class AttachmentService {
   async signUpload(input: SignUploadInput, userId: string) {
@@ -47,10 +59,78 @@ export class AttachmentService {
       boardId: card.list.boardId,
       cardId,
       userId,
-      metadata: { attachmentId: attachment.id, kind: input.kind },
+      metadata: {
+        attachmentId: attachment.id,
+        kind: input.kind,
+        fileName: input.filename ?? attachment.filename ?? "attachment",
+      },
     });
 
     return toAttachmentResponse(attachment);
+  }
+
+  async uploadFileAttachment(cardId: string, file: UploadedFile, userId: string) {
+    const card = await cardRepository.findById(cardId);
+
+    if (!card) {
+      throw new AppError("Card not found", HTTP_STATUS.NOT_FOUND);
+    }
+
+    await boardService.assertBoardAccess(card.list.boardId, userId, "MEMBER");
+
+    const { storagePath, publicUrl } = await uploadObject(
+      cardId,
+      file.originalname,
+      file.buffer,
+      file.mimetype,
+    );
+
+    const attachment = await attachmentRepository.create(cardId, {
+      kind: "FILE",
+      url: publicUrl,
+      storagePath,
+      filename: file.originalname,
+      mimeType: file.mimetype,
+      sizeBytes: file.size,
+      uploadedById: userId,
+    });
+
+    await activityService.log({
+      type: "ATTACHMENT_ADDED",
+      message: `An attachment was added to "${card.title}"`,
+      boardId: card.list.boardId,
+      cardId,
+      userId,
+      metadata: {
+        attachmentId: attachment.id,
+        kind: "FILE",
+        fileName: file.originalname,
+      },
+    });
+
+    return toAttachmentResponse(attachment);
+  }
+
+  async getAttachmentDownload(attachmentId: string, userId: string) {
+    const attachment = await attachmentRepository.findById(attachmentId);
+
+    if (!attachment) {
+      throw new AppError("Attachment not found", HTTP_STATUS.NOT_FOUND);
+    }
+
+    await boardService.assertBoardAccess(attachment.card.list.boardId, userId, "MEMBER");
+
+    if (attachment.kind !== "FILE" || !attachment.storagePath) {
+      throw new AppError("This attachment cannot be downloaded", HTTP_STATUS.BAD_REQUEST);
+    }
+
+    const buffer = await downloadObject(attachment.storagePath);
+
+    return {
+      buffer,
+      filename: attachment.filename ?? "download",
+      mimeType: attachment.mimeType ?? "application/octet-stream",
+    };
   }
 
   async deleteAttachment(attachmentId: string, userId: string) {

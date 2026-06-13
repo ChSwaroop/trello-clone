@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { api, getApiErrorMessage } from "@/lib/api";
 import type {
   API_SUCCESS,
+  ARCHIVED_CARD,
   BOARD_DETAILS,
   CARD,
   CARD_SEARCH_RESULT,
@@ -47,6 +48,31 @@ export default function useCards(boardId: string) {
         return data.data;
       },
       enabled: Object.values(params).some(Boolean),
+    });
+
+  const useGetArchivedCards = (search: string) =>
+    useQuery({
+      queryKey: ["get-archived-cards", boardId, search],
+      queryFn: async () => {
+        const { data } = await api.get<API_SUCCESS<ARCHIVED_CARD[]>>(
+          `/boards/${boardId}/archived-cards`,
+          { params: search ? { search } : undefined },
+        );
+        return data.data;
+      },
+      enabled: !!boardId,
+    });
+
+  const useGetCard = (cardId: string | null, enabled = true) =>
+    useQuery({
+      queryKey: ["get-card", cardId],
+      queryFn: async () => {
+        const { data } = await api.get<API_SUCCESS<CARD_WITH_RELATIONS>>(
+          `/cards/${cardId}`,
+        );
+        return data.data;
+      },
+      enabled: !!cardId && enabled,
     });
 
   const useCreateCard = () =>
@@ -125,6 +151,7 @@ export default function useCards(boardId: string) {
                     ...payload,
                     startDate: payload.startDate === null ? undefined : payload.startDate ?? card.startDate,
                     dueDate: payload.dueDate === null ? undefined : payload.dueDate ?? card.dueDate,
+                    dueTime: payload.dueTime === null ? undefined : payload.dueTime ?? card.dueTime,
                     coverColor: payload.coverColor === null ? undefined : payload.coverColor ?? card.coverColor,
                     coverAttachmentId:
                       payload.coverAttachmentId === null
@@ -144,6 +171,11 @@ export default function useCards(boardId: string) {
         }
         toast.error(getApiErrorMessage(error));
       },
+      onSuccess: (_data, { cardId }) => {
+        void queryClient.invalidateQueries({
+          queryKey: ["get-card-activities", cardId],
+        });
+      },
     });
 
   const useDeleteCard = () =>
@@ -153,6 +185,64 @@ export default function useCards(boardId: string) {
         await api.delete(`/cards/${cardId}`);
       },
       onMutate: async (cardId) => {
+        await queryClient.cancelQueries({
+          queryKey: ["get-board-details", boardId],
+        });
+        await queryClient.cancelQueries({
+          queryKey: ["get-card", cardId],
+        });
+
+        const previous = queryClient.getQueryData<BOARD_DETAILS>([
+          "get-board-details",
+          boardId,
+        ]);
+
+        updateBoardCache((prev) => ({
+          ...prev,
+          lists: prev.lists.map((list) => ({
+            ...list,
+            cards: list.cards
+              .filter((card) => card.id !== cardId)
+              .map((card, index) => ({ ...card, position: index + 1 })),
+          })),
+        }));
+
+        return { previous };
+      },
+      onError: (error, _variables, context) => {
+        if (context?.previous) {
+          queryClient.setQueryData(["get-board-details", boardId], context.previous);
+        }
+        toast.error(getApiErrorMessage(error));
+      },
+      onSuccess: (_data, cardId) => {
+        queryClient.removeQueries({ queryKey: ["get-card", cardId] });
+        void queryClient.invalidateQueries({
+          queryKey: ["get-board-details", boardId],
+        });
+        void queryClient.invalidateQueries({
+          queryKey: ["get-archived-cards", boardId],
+        });
+        void queryClient.invalidateQueries({
+          queryKey: ["get-board-activities", boardId],
+        });
+      },
+    });
+
+  const useArchiveCard = () =>
+    useMutation({
+      mutationKey: ["archive-card", boardId],
+      mutationFn: async (cardId: string) => {
+        const { data } = await api.patch<API_SUCCESS<CARD>>(
+          `/cards/${cardId}/archive`,
+        );
+        return data.data;
+      },
+      onMutate: async (cardId) => {
+        await queryClient.cancelQueries({
+          queryKey: ["get-board-details", boardId],
+        });
+
         const previous = queryClient.getQueryData<BOARD_DETAILS>([
           "get-board-details",
           boardId,
@@ -174,37 +264,40 @@ export default function useCards(boardId: string) {
         }
         toast.error(getApiErrorMessage(error));
       },
+      onSuccess: () => {
+        void queryClient.invalidateQueries({
+          queryKey: ["get-archived-cards", boardId],
+        });
+        void queryClient.invalidateQueries({
+          queryKey: ["get-board-activities", boardId],
+        });
+      },
     });
 
-  const useArchiveCard = () =>
+  const useRestoreCard = () =>
     useMutation({
-      mutationKey: ["archive-card", boardId],
+      mutationKey: ["restore-card", boardId],
       mutationFn: async (cardId: string) => {
         const { data } = await api.patch<API_SUCCESS<CARD>>(
-          `/cards/${cardId}/archive`,
+          `/cards/${cardId}/restore`,
         );
         return data.data;
       },
-      onMutate: async (cardId) => {
-        const previous = queryClient.getQueryData<BOARD_DETAILS>([
-          "get-board-details",
-          boardId,
-        ]);
-
-        updateBoardCache((prev) => ({
-          ...prev,
-          lists: prev.lists.map((list) => ({
-            ...list,
-            cards: list.cards.filter((card) => card.id !== cardId),
-          })),
-        }));
-
-        return { previous };
+      onSuccess: (_data, cardId) => {
+        void queryClient.invalidateQueries({
+          queryKey: ["get-board-details", boardId],
+        });
+        void queryClient.invalidateQueries({
+          queryKey: ["get-card", cardId],
+        });
+        void queryClient.invalidateQueries({
+          queryKey: ["get-archived-cards", boardId],
+        });
+        void queryClient.invalidateQueries({
+          queryKey: ["get-board-activities", boardId],
+        });
       },
-      onError: (error, _variables, context) => {
-        if (context?.previous) {
-          queryClient.setQueryData(["get-board-details", boardId], context.previous);
-        }
+      onError: (error) => {
         toast.error(getApiErrorMessage(error));
       },
     });
@@ -279,10 +372,13 @@ export default function useCards(boardId: string) {
   return {
     useSearchCards,
     useFilterCards,
+    useGetArchivedCards,
+    useGetCard,
     useCreateCard,
     useUpdateCard,
     useDeleteCard,
     useArchiveCard,
+    useRestoreCard,
     useMoveCard,
   };
 }

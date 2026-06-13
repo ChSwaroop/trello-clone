@@ -5,16 +5,19 @@ import type {
   API_SUCCESS,
   ASSIGN_LABEL_PAYLOAD,
   ASSIGN_MEMBER_PAYLOAD,
+  ATTACHMENT,
   BOARD_DETAILS,
   CREATE_CHECKLIST_ITEM_PAYLOAD,
   CREATE_CHECKLIST_PAYLOAD,
   CREATE_COMMENT_PAYLOAD,
   CREATE_LABEL_PAYLOAD,
+  CREATE_LINK_ATTACHMENT_PAYLOAD,
   CHECKLIST,
   CHECKLIST_ITEM,
   COMMENT,
   LABEL,
   UPDATE_CHECKLIST_ITEM_PAYLOAD,
+  UPDATE_LABEL_PAYLOAD,
   USER,
 } from "@/lib/types";
 
@@ -29,6 +32,12 @@ export default function useCardExtras(boardId: string) {
     );
   };
 
+  const invalidateCardActivities = (cardId: string) => {
+    void queryClient.invalidateQueries({
+      queryKey: ["get-card-activities", cardId],
+    });
+  };
+
   const useCreateLabel = () =>
     useMutation({
       mutationKey: ["create-label", boardId],
@@ -40,6 +49,29 @@ export default function useCardExtras(boardId: string) {
         updateBoardCache((prev) => ({
           ...prev,
           labels: [...prev.labels, label],
+        }));
+      },
+      onError: (error) => toast.error(getApiErrorMessage(error)),
+    });
+
+  const useUpdateLabel = () =>
+    useMutation({
+      mutationKey: ["update-label", boardId],
+      mutationFn: async ({ labelId, payload }: { labelId: string; payload: UPDATE_LABEL_PAYLOAD }) => {
+        const { data } = await api.patch<API_SUCCESS<LABEL>>(`/labels/${labelId}`, payload);
+        return data.data;
+      },
+      onSuccess: (updated) => {
+        updateBoardCache((prev) => ({
+          ...prev,
+          labels: prev.labels.map((l) => (l.id === updated.id ? updated : l)),
+          lists: prev.lists.map((list) => ({
+            ...list,
+            cards: list.cards.map((card) => ({
+              ...card,
+              labels: card.labels.map((l) => (l.id === updated.id ? updated : l)),
+            })),
+          })),
         }));
       },
       onError: (error) => toast.error(getApiErrorMessage(error)),
@@ -77,6 +109,7 @@ export default function useCardExtras(boardId: string) {
             })),
           };
         });
+        invalidateCardActivities(cardId);
       },
       onError: (error) => toast.error(getApiErrorMessage(error)),
     });
@@ -108,6 +141,7 @@ export default function useCardExtras(boardId: string) {
             ),
           })),
         }));
+        invalidateCardActivities(cardId);
       },
       onError: (error) => toast.error(getApiErrorMessage(error)),
     });
@@ -140,6 +174,7 @@ export default function useCardExtras(boardId: string) {
             ),
           })),
         }));
+        invalidateCardActivities(cardId);
       },
       onError: (error) => toast.error(getApiErrorMessage(error)),
     });
@@ -171,6 +206,7 @@ export default function useCardExtras(boardId: string) {
             ),
           })),
         }));
+        invalidateCardActivities(cardId);
       },
       onError: (error) => toast.error(getApiErrorMessage(error)),
     });
@@ -206,6 +242,7 @@ export default function useCardExtras(boardId: string) {
             ),
           })),
         }));
+        invalidateCardActivities(cardId);
       },
       onError: (error) => toast.error(getApiErrorMessage(error)),
     });
@@ -275,6 +312,64 @@ export default function useCardExtras(boardId: string) {
             })),
           })),
         }));
+
+        const board = queryClient.getQueryData<BOARD_DETAILS>([
+          "get-board-details",
+          boardId,
+        ]);
+        const cardId = board?.lists
+          .flatMap((list) => list.cards)
+          .find((card) =>
+            card.checklists.some((checklist) => checklist.id === item.checklistId),
+          )?.id;
+        if (cardId) invalidateCardActivities(cardId);
+      },
+      onError: (error) => toast.error(getApiErrorMessage(error)),
+    });
+
+  const useDeleteChecklist = () =>
+    useMutation({
+      mutationKey: ["delete-checklist", boardId],
+      mutationFn: async (checklistId: string) => {
+        await api.delete(`/checklists/${checklistId}`);
+        return checklistId;
+      },
+      onSuccess: (checklistId) => {
+        updateBoardCache((prev) => ({
+          ...prev,
+          lists: prev.lists.map((list) => ({
+            ...list,
+            cards: list.cards.map((card) => ({
+              ...card,
+              checklists: card.checklists.filter((cl) => cl.id !== checklistId),
+            })),
+          })),
+        }));
+      },
+      onError: (error) => toast.error(getApiErrorMessage(error)),
+    });
+
+  const useDeleteChecklistItem = () =>
+    useMutation({
+      mutationKey: ["delete-checklist-item", boardId],
+      mutationFn: async (itemId: string) => {
+        await api.delete(`/checklist-items/${itemId}`);
+        return itemId;
+      },
+      onSuccess: (itemId) => {
+        updateBoardCache((prev) => ({
+          ...prev,
+          lists: prev.lists.map((list) => ({
+            ...list,
+            cards: list.cards.map((card) => ({
+              ...card,
+              checklists: card.checklists.map((checklist) => ({
+                ...checklist,
+                items: checklist.items.filter((item) => item.id !== itemId),
+              })),
+            })),
+          })),
+        }));
       },
       onError: (error) => toast.error(getApiErrorMessage(error)),
     });
@@ -307,6 +402,7 @@ export default function useCardExtras(boardId: string) {
             ),
           })),
         }));
+        invalidateCardActivities(cardId);
       },
       onError: (error) => toast.error(getApiErrorMessage(error)),
     });
@@ -368,17 +464,136 @@ export default function useCardExtras(boardId: string) {
       onError: (error) => toast.error(getApiErrorMessage(error)),
     });
 
+  const useUploadAttachment = () =>
+    useMutation({
+      mutationKey: ["upload-attachment", boardId],
+      mutationFn: async ({
+        cardId,
+        file,
+      }: {
+        cardId: string;
+        file: File;
+      }) => {
+        const formData = new FormData();
+        formData.append("file", file);
+        const { data } = await api.post<API_SUCCESS<ATTACHMENT>>(
+          `/cards/${cardId}/attachments/upload`,
+          formData,
+          { headers: { "Content-Type": "multipart/form-data" } },
+        );
+        return data.data;
+      },
+      onSuccess: (attachment, { cardId }) => {
+        updateBoardCache((prev) => ({
+          ...prev,
+          lists: prev.lists.map((list) => ({
+            ...list,
+            cards: list.cards.map((card) =>
+              card.id === cardId
+                ? {
+                    ...card,
+                    attachments: [...(card.attachments ?? []), attachment],
+                  }
+                : card,
+            ),
+          })),
+        }));
+        invalidateCardActivities(cardId);
+      },
+      onError: (error) => toast.error(getApiErrorMessage(error)),
+    });
+
+  const useCreateLinkAttachment = () =>
+    useMutation({
+      mutationKey: ["create-link-attachment", boardId],
+      mutationFn: async ({
+        cardId,
+        payload,
+      }: {
+        cardId: string;
+        payload: CREATE_LINK_ATTACHMENT_PAYLOAD;
+      }) => {
+        const { data } = await api.post<API_SUCCESS<ATTACHMENT>>(
+          `/cards/${cardId}/attachments`,
+          payload,
+        );
+        return data.data;
+      },
+      onSuccess: (attachment, { cardId }) => {
+        updateBoardCache((prev) => ({
+          ...prev,
+          lists: prev.lists.map((list) => ({
+            ...list,
+            cards: list.cards.map((card) =>
+              card.id === cardId
+                ? {
+                    ...card,
+                    attachments: [...(card.attachments ?? []), attachment],
+                  }
+                : card,
+            ),
+          })),
+        }));
+        invalidateCardActivities(cardId);
+      },
+      onError: (error) => toast.error(getApiErrorMessage(error)),
+    });
+
+  const useDeleteAttachment = () =>
+    useMutation({
+      mutationKey: ["delete-attachment", boardId],
+      mutationFn: async ({
+        attachmentId,
+      }: {
+        attachmentId: string;
+        cardId: string;
+      }) => {
+        await api.delete(`/attachments/${attachmentId}`);
+        return attachmentId;
+      },
+      onSuccess: (attachmentId, { cardId }) => {
+        updateBoardCache((prev) => ({
+          ...prev,
+          lists: prev.lists.map((list) => ({
+            ...list,
+            cards: list.cards.map((card) => ({
+              ...card,
+              attachments: (card.attachments ?? []).filter(
+                (item) => item.id !== attachmentId,
+              ),
+              coverAttachmentId:
+                card.coverAttachmentId === attachmentId
+                  ? undefined
+                  : card.coverAttachmentId,
+              coverAttachment:
+                card.coverAttachment?.id === attachmentId
+                  ? undefined
+                  : card.coverAttachment,
+            })),
+          })),
+        }));
+        invalidateCardActivities(cardId);
+      },
+      onError: (error) => toast.error(getApiErrorMessage(error)),
+    });
+
   return {
     useCreateLabel,
+    useUpdateLabel,
     useAssignLabel,
     useRemoveLabel,
     useAssignMember,
     useRemoveMember,
     useCreateChecklist,
+    useDeleteChecklist,
     useCreateChecklistItem,
     useUpdateChecklistItem,
+    useDeleteChecklistItem,
     useCreateComment,
     useUpdateComment,
     useDeleteComment,
+    useUploadAttachment,
+    useCreateLinkAttachment,
+    useDeleteAttachment,
   };
 }

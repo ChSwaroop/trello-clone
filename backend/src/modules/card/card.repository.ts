@@ -1,6 +1,54 @@
 import type { Prisma } from "../../generated/prisma/client.js";
 import { prisma } from "../../db/prisma.js";
 
+const cardRelationsInclude = {
+  labels: { include: { label: true } },
+  members: {
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          avatarUrl: true,
+        },
+      },
+    },
+  },
+  checklists: {
+    include: {
+      items: {
+        orderBy: { position: "asc" as const },
+        include: {
+          assignedTo: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              avatarUrl: true,
+            },
+          },
+        },
+      },
+    },
+  },
+  comments: {
+    orderBy: { createdAt: "asc" as const },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          avatarUrl: true,
+        },
+      },
+    },
+  },
+  attachments: true,
+  coverAttachment: true,
+} satisfies Prisma.CardInclude;
+
 export class CardRepository {
   async create(listId: string, title: string, position: number) {
     return prisma.card.create({
@@ -45,6 +93,34 @@ export class CardRepository {
       where: { id: cardId },
       include: {
         list: true,
+      },
+    });
+  }
+
+  async findWithRelations(cardId: string) {
+    return prisma.card.findUnique({
+      where: { id: cardId },
+      include: {
+        list: true,
+        ...cardRelationsInclude,
+      },
+    });
+  }
+
+  async findArchivedByBoardId(boardId: string, search?: string) {
+    return prisma.card.findMany({
+      where: {
+        status: "ARCHIVED",
+        list: { boardId },
+        ...(search
+          ? {
+              title: { contains: search, mode: "insensitive" },
+            }
+          : {}),
+      },
+      orderBy: { updatedAt: "desc" },
+      include: {
+        list: { select: { id: true, title: true } },
       },
     });
   }

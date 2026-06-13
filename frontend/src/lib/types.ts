@@ -21,6 +21,8 @@ export type BOARD_ROLE = "ADMIN" | "MEMBER" | "OBSERVER";
 export type BOARD_VISIBILITY = "PRIVATE" | "WORKSPACE" | "PUBLIC";
 export type ENTITY_STATUS = "ACTIVE" | "ARCHIVED";
 export type ATTACHMENT_KIND = "FILE" | "LINK";
+export type CARD_RECURRING = "NEVER" | "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
+export type DUE_DATE_REMINDER = "NONE" | "AT_DUE_DATE" | "FIVE_MINUTES" | "FIFTEEN_MINUTES" | "ONE_HOUR" | "TWO_HOURS" | "ONE_DAY" | "TWO_DAYS";
 
 /* ------------------------------------------------ */
 /* USER */
@@ -108,7 +110,10 @@ export type CARD = {
   description?: string;
   startDate?: string;
   dueDate?: string;
+  dueTime?: string;
   dueComplete: boolean;
+  recurring: CARD_RECURRING;
+  dueDateReminder: DUE_DATE_REMINDER;
   coverColor?: string;
   coverAttachmentId?: string;
   position: number;
@@ -282,6 +287,10 @@ export type ACTIVITIES_RESPONSE = {
   hasMore: boolean;
 };
 
+export type ARCHIVED_CARD = CARD & {
+  list: Pick<LIST, "id" | "title">;
+};
+
 /* ------------------------------------------------ */
 /* MUTATION PAYLOADS */
 /* ------------------------------------------------ */
@@ -314,6 +323,15 @@ export type REORDER_LISTS_PAYLOAD = {
   lists: Array<{ id: string; position: number }>;
 };
 
+export type COPY_LIST_PAYLOAD = {
+  title: string;
+};
+
+export type MOVE_LIST_PAYLOAD = {
+  destinationBoardId: string;
+  position: number;
+};
+
 export type CREATE_CARD_PAYLOAD = {
   listId: string;
   title: string;
@@ -325,7 +343,10 @@ export type UPDATE_CARD_PAYLOAD = {
   description?: string;
   startDate?: string | null;
   dueDate?: string | null;
+  dueTime?: string | null;
   dueComplete?: boolean;
+  recurring?: CARD_RECURRING;
+  dueDateReminder?: DUE_DATE_REMINDER;
   coverColor?: string | null;
   coverAttachmentId?: string | null;
 };
@@ -341,6 +362,11 @@ export type CREATE_LABEL_PAYLOAD = {
   boardId: string;
   name: string;
   color: string;
+};
+
+export type UPDATE_LABEL_PAYLOAD = {
+  name?: string;
+  color?: string;
 };
 
 export type ASSIGN_LABEL_PAYLOAD = {
@@ -363,10 +389,18 @@ export type CREATE_CHECKLIST_ITEM_PAYLOAD = {
 export type UPDATE_CHECKLIST_ITEM_PAYLOAD = {
   title?: string;
   isCompleted?: boolean;
+  assignedToId?: string | null;
+  dueDate?: string | null;
 };
 
 export type CREATE_COMMENT_PAYLOAD = {
   content: string;
+};
+
+export type CREATE_LINK_ATTACHMENT_PAYLOAD = {
+  url: string;
+  filename?: string;
+  kind: "LINK";
 };
 
 export type CARD_SEARCH_RESULT = CARD & {

@@ -60,3 +60,45 @@ export const getPublicUrl = (storagePath: string) => {
   const { data } = supabase.storage.from(storageBucket).getPublicUrl(storagePath);
   return data.publicUrl;
 };
+
+export const uploadObject = async (
+  cardId: string,
+  filename: string,
+  buffer: Buffer,
+  mimeType: string,
+) => {
+  const supabase = getSupabaseClient();
+  const storagePath = `${cardId}/${randomUUID()}-${filename}`;
+
+  const { error } = await supabase.storage.from(storageBucket).upload(storagePath, buffer, {
+    contentType: mimeType,
+    upsert: false,
+  });
+
+  if (error) {
+    throw new AppError(
+      error.message ?? "Failed to upload file",
+      HTTP_STATUS.INTERNAL_SERVER_ERROR,
+    );
+  }
+
+  return {
+    storagePath,
+    publicUrl: getPublicUrl(storagePath),
+  };
+};
+
+export const downloadObject = async (storagePath: string) => {
+  const supabase = getSupabaseClient();
+
+  const { data, error } = await supabase.storage.from(storageBucket).download(storagePath);
+
+  if (error || !data) {
+    throw new AppError(
+      error?.message ?? "Failed to download file",
+      HTTP_STATUS.INTERNAL_SERVER_ERROR,
+    );
+  }
+
+  return Buffer.from(await data.arrayBuffer());
+};

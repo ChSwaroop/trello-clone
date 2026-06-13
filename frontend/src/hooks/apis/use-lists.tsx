@@ -4,8 +4,11 @@ import { api, getApiErrorMessage } from "@/lib/api";
 import type {
   API_SUCCESS,
   BOARD_DETAILS,
+  COPY_LIST_PAYLOAD,
   CREATE_LIST_PAYLOAD,
   LIST,
+  LIST_WITH_CARDS,
+  MOVE_LIST_PAYLOAD,
   REORDER_LISTS_PAYLOAD,
   UPDATE_LIST_PAYLOAD,
 } from "@/lib/types";
@@ -139,5 +142,70 @@ export default function useLists(boardId: string) {
       },
     });
 
-  return { useCreateList, useUpdateList, useDeleteList, useReorderLists };
+  const useCopyList = () =>
+    useMutation({
+      mutationKey: ["copy-list", boardId],
+      mutationFn: async ({
+        listId,
+        payload,
+      }: {
+        listId: string;
+        payload: COPY_LIST_PAYLOAD;
+      }) => {
+        const { data } = await api.post<API_SUCCESS<LIST_WITH_CARDS>>(
+          `/lists/${listId}/copy`,
+          payload,
+        );
+        return data.data;
+      },
+      onSuccess: (_copiedList, { listId: _listId }) => {
+        void queryClient.invalidateQueries({
+          queryKey: ["get-board-details", boardId],
+        });
+      },
+      onError: (error) => {
+        toast.error(getApiErrorMessage(error));
+      },
+    });
+
+  const useMoveList = () =>
+    useMutation({
+      mutationKey: ["move-list", boardId],
+      mutationFn: async ({
+        listId,
+        payload,
+      }: {
+        listId: string;
+        payload: MOVE_LIST_PAYLOAD;
+      }) => {
+        const { data } = await api.patch<API_SUCCESS<LIST>>(
+          `/lists/${listId}/move`,
+          payload,
+        );
+        return data.data;
+      },
+      onSuccess: (_movedList, { payload }) => {
+        void queryClient.invalidateQueries({
+          queryKey: ["get-board-details", boardId],
+        });
+
+        if (payload.destinationBoardId !== boardId) {
+          void queryClient.invalidateQueries({
+            queryKey: ["get-board-details", payload.destinationBoardId],
+          });
+        }
+      },
+      onError: (error) => {
+        toast.error(getApiErrorMessage(error));
+      },
+    });
+
+  return {
+    useCreateList,
+    useUpdateList,
+    useDeleteList,
+    useReorderLists,
+    useCopyList,
+    useMoveList,
+  };
 }

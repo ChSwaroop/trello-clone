@@ -4,7 +4,7 @@ import activityRoutes from "../modules/activity/activity.routes.js";
 import attachmentRoutes from "../modules/attachment/attachment.routes.js";
 import authRoutes from "../modules/auth/auth.routes.js";
 import boardRoutes from "../modules/board/board.routes.js";
-import { checklistItemRoutes } from "../modules/checklist/checklist.routes.js";
+import { checklistItemRoutes, checklistRoutes } from "../modules/checklist/checklist.routes.js";
 import cardRoutes from "../modules/card/card.routes.js";
 import commentRoutes from "../modules/comment/comment.routes.js";
 import labelRoutes from "../modules/label/label.routes.js";
@@ -28,5 +28,6 @@ apiRouter.use("/attachments", attachmentRoutes);
 apiRouter.use("/labels", labelRoutes);
 apiRouter.use("/members", memberRoutes);
 apiRouter.use("/checklist-items", checklistItemRoutes);
+apiRouter.use("/checklists", checklistRoutes);
 
 export default apiRouter;

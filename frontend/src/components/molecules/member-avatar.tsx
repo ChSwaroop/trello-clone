@@ -4,11 +4,12 @@ import type { USER } from "@/lib/types";
 
 type MemberAvatarProps = {
   user: USER;
-  size?: "sm" | "md";
+  size?: "xs" | "sm" | "md";
   className?: string;
 };
 
 const sizeClasses = {
+  xs: "size-4 text-[8px]",
   sm: "size-6 text-[10px]",
   md: "size-8 text-xs",
 };

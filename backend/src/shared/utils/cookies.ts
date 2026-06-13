@@ -4,7 +4,7 @@ import { COOKIE_NAMES, TOKEN_LIFETIMES } from "../constants/index.js";
 
 const cookieOptions = {
   httpOnly: true,
-  secure: env.NODE_ENV === "production",
+  secure: true,
   sameSite: "none" as const, // temp to allow cross-origin requests
 };
 

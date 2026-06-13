@@ -1,6 +1,13 @@
 import { HTTP_STATUS } from "../../shared/constants/http-status.js";
 import { AppError } from "../../shared/utils/app-error.js";
-import { toCardResponse, toMemberResponse } from "../../shared/utils/serializers.js";
+import {
+  toAttachmentResponse,
+  toCardResponse,
+  toChecklistItemResponse,
+  toCommentResponse,
+  toLabelResponse,
+  toMemberResponse,
+} from "../../shared/utils/serializers.js";
 import { activityService } from "../activity/activity.service.js";
 import { boardService } from "../board/board.service.js";
 import { listRepository } from "../list/list.repository.js";
@@ -12,6 +19,26 @@ import type {
   SearchCardsQuery,
   UpdateCardInput,
 } from "./card.validator.js";
+
+type CardWithRelations = NonNullable<Awaited<ReturnType<typeof cardRepository.findWithRelations>>>;
+
+const toCardWithRelationsResponse = (card: CardWithRelations) => ({
+  ...toCardResponse(card),
+  labels: card.labels.map((entry) => toLabelResponse(entry.label)),
+  members: card.members.map((entry) => toMemberResponse(entry.user)),
+  checklists: card.checklists.map((checklist) => ({
+    id: checklist.id,
+    cardId: checklist.cardId,
+    title: checklist.title,
+    createdAt: checklist.createdAt,
+    items: checklist.items.map((item) => toChecklistItemResponse(item)),
+  })),
+  comments: card.comments.map((comment) => toCommentResponse(comment)),
+  attachments: card.attachments.map((attachment) => toAttachmentResponse(attachment)),
+  coverAttachment: card.coverAttachment
+    ? toAttachmentResponse(card.coverAttachment)
+    : undefined,
+});
 
 export class CardService {
   async createCard(input: CreateCardInput, userId: string) {
@@ -52,6 +79,7 @@ export class CardService {
       input.description === undefined &&
       input.startDate === undefined &&
       input.dueDate === undefined &&
+      input.dueTime === undefined &&
       input.dueComplete === undefined &&
       input.coverColor === undefined &&
       input.coverAttachmentId === undefined
@@ -76,6 +104,7 @@ export class CardService {
       ...(input.dueDate !== undefined
         ? { dueDate: input.dueDate ? new Date(input.dueDate) : null }
         : {}),
+      ...(input.dueTime !== undefined ? { dueTime: input.dueTime } : {}),
       ...(input.dueComplete !== undefined ? { dueComplete: input.dueComplete } : {}),
       ...(input.coverColor !== undefined ? { coverColor: input.coverColor } : {}),
       ...(input.coverAttachmentId !== undefined
@@ -108,16 +137,53 @@ export class CardService {
       });
     }
     if (input.dueDate !== undefined) {
-      await activityService.log({
-        type: input.dueDate ? "DUE_DATE_SET" : "DUE_DATE_CLEARED",
-        message: input.dueDate
-          ? `Due date was set on "${updated.title}"`
-          : `Due date was cleared on "${updated.title}"`,
-        boardId: card.list.boardId,
-        cardId: updated.id,
-        userId,
-        metadata: { dueDate: input.dueDate },
-      });
+      const dueDateValue = input.dueDate ?? updated.dueDate?.toISOString() ?? null;
+      const dueTimeValue = input.dueTime !== undefined ? input.dueTime : updated.dueTime;
+      const hadDueDate = card.dueDate !== null;
+
+      if (!input.dueDate) {
+        await activityService.log({
+          type: "DUE_DATE_CLEARED",
+          message: "removed the due date from this card",
+          boardId: card.list.boardId,
+          cardId: updated.id,
+          userId,
+        });
+      } else {
+        await activityService.log({
+          type: "DUE_DATE_SET",
+          message: hadDueDate
+            ? "changed the due date of this card"
+            : "set this card to be due",
+          boardId: card.list.boardId,
+          cardId: updated.id,
+          userId,
+          metadata: {
+            dueDate: dueDateValue,
+            dueTime: dueTimeValue,
+            action: hadDueDate ? "changed" : "set",
+          },
+        });
+      }
+    } else if (input.dueTime !== undefined) {
+      const hadDueDate = card.dueDate !== null;
+
+      if (updated.dueDate) {
+        await activityService.log({
+          type: "DUE_DATE_SET",
+          message: hadDueDate
+            ? "changed the due date of this card"
+            : "set this card to be due",
+          boardId: card.list.boardId,
+          cardId: updated.id,
+          userId,
+          metadata: {
+            dueDate: updated.dueDate.toISOString(),
+            dueTime: input.dueTime,
+            action: hadDueDate ? "changed" : "set",
+          },
+        });
+      }
     }
 
     if (input.startDate !== undefined) {
@@ -159,6 +225,26 @@ export class CardService {
     });
 
     return toCardResponse(archived);
+  }
+
+  async restoreCard(cardId: string, userId: string) {
+    const card = await this.getCardWithAccess(cardId, userId, "MEMBER");
+
+    if (card.status === "ACTIVE") {
+      throw new AppError("Card is not archived", HTTP_STATUS.BAD_REQUEST);
+    }
+
+    const restored = await cardRepository.update(cardId, { status: "ACTIVE" });
+
+    await activityService.log({
+      type: "CARD_UPDATED",
+      message: `Card "${restored.title}" was restored`,
+      boardId: card.list.boardId,
+      cardId: restored.id,
+      userId,
+    });
+
+    return toCardResponse(restored);
   }
 
   async moveCard(input: MoveCardInput, userId: string) {
@@ -241,6 +327,27 @@ export class CardService {
       list: card.list,
       labels: card.labels.map((entry) => entry.label),
       members: card.members.map((entry) => toMemberResponse(entry.user)),
+    }));
+  }
+
+  async getCardDetails(cardId: string, userId: string) {
+    const card = await cardRepository.findWithRelations(cardId);
+
+    if (!card) {
+      throw new AppError("Card not found", HTTP_STATUS.NOT_FOUND);
+    }
+
+    await boardService.assertBoardAccess(card.list.boardId, userId, "OBSERVER");
+    return toCardWithRelationsResponse(card);
+  }
+
+  async getArchivedCards(boardId: string, userId: string, search?: string) {
+    await boardService.assertBoardAccess(boardId, userId, "OBSERVER");
+
+    const cards = await cardRepository.findArchivedByBoardId(boardId, search);
+    return cards.map((card) => ({
+      ...toCardResponse(card),
+      list: card.list,
     }));
   }
 

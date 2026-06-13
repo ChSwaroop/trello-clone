@@ -3,11 +3,13 @@ import {
   DragOverlay,
   PointerSensor,
   closestCorners,
+  defaultDropAnimationSideEffects,
   useSensor,
   useSensors,
   type DragEndEvent,
   type DragOverEvent,
   type DragStartEvent,
+  type DropAnimation,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -18,6 +20,7 @@ import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import SortableListColumn from "@/components/molecules/board/sortable-list-column";
 import CardPreview from "@/components/molecules/board/card-preview";
+import ListDragPreview from "@/components/molecules/board/list-drag-preview";
 import AddListButton from "@/components/molecules/board/add-list-button";
 import {
   findCardListId,
@@ -26,8 +29,20 @@ import {
 import useBoards from "@/hooks/apis/use-boards";
 import useLists from "@/hooks/apis/use-lists";
 import useCards from "@/hooks/apis/use-cards";
-import type { CARD_WITH_RELATIONS } from "@/lib/types";
+import type { CARD_WITH_RELATIONS, LIST_WITH_CARDS } from "@/lib/types";
 import { useBoardStore } from "@/stores/use-board-store";
+
+const listDropAnimation: DropAnimation = {
+  duration: 220,
+  easing: "cubic-bezier(0.18, 0.67, 0.6, 1)",
+  sideEffects: defaultDropAnimationSideEffects({
+    styles: {
+      active: {
+        opacity: "0.4",
+      },
+    },
+  }),
+};
 
 type BoardCanvasProps = {
   boardId: string;
@@ -48,6 +63,8 @@ export default function BoardCanvas({ boardId }: BoardCanvasProps) {
   const [activeCard, setActiveCard] = useState<CARD_WITH_RELATIONS | null>(
     null,
   );
+  const [activeList, setActiveList] = useState<LIST_WITH_CARDS | null>(null);
+  const [activeListHeight, setActiveListHeight] = useState<number | undefined>();
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -62,6 +79,8 @@ export default function BoardCanvas({ boardId }: BoardCanvasProps) {
 
   const clearDragState = () => {
     setActiveCard(null);
+    setActiveList(null);
+    setActiveListHeight(undefined);
     setDraggingCardId(null);
     setDraggingListId(null);
     setDropTarget(null);
@@ -79,6 +98,9 @@ export default function BoardCanvas({ boardId }: BoardCanvasProps) {
     }
 
     if (type === "list") {
+      const list = active.data.current?.list as LIST_WITH_CARDS;
+      setActiveList(list);
+      setActiveListHeight(active.rect.current.initial?.height);
       setDraggingListId(active.id as string);
       setDropTarget(null);
     }
@@ -207,14 +229,22 @@ export default function BoardCanvas({ boardId }: BoardCanvasProps) {
                   key={list.id}
                   list={list}
                   boardId={boardId}
+                  boardTitle={data.board.title}
+                  boardListCount={data.lists.length}
+                  dragPlaceholderHeight={activeListHeight}
                 />
               ))}
               <AddListButton boardId={boardId} />
             </div>
           </SortableContext>
 
-          <DragOverlay>
-            {activeCard ? (
+          <DragOverlay dropAnimation={activeList ? listDropAnimation : undefined}>
+            {activeList ? (
+              <ListDragPreview
+                list={activeList}
+                className="rotate-2 cursor-grabbing opacity-95"
+              />
+            ) : activeCard ? (
               <div className="w-[272px]">
                 <CardPreview card={activeCard} isDragging />
               </div>

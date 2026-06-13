@@ -5,13 +5,26 @@ import { activityService } from "../activity/activity.service.js";
 import { boardService } from "../board/board.service.js";
 import { cardRepository } from "../card/card.repository.js";
 import { labelRepository } from "./label.repository.js";
-import type { AssignLabelInput, CreateLabelInput } from "./label.validator.js";
+import type { AssignLabelInput, CreateLabelInput, UpdateLabelInput } from "./label.validator.js";
 
 export class LabelService {
   async createLabel(input: CreateLabelInput, userId: string) {
     await boardService.assertBoardAccess(input.boardId, userId, "MEMBER");
     const label = await labelRepository.create(input.boardId, input.name, input.color);
     return toLabelResponse(label);
+  }
+
+  async updateLabel(labelId: string, input: UpdateLabelInput, userId: string) {
+    const label = await labelRepository.findById(labelId);
+    if (!label) {
+      throw new AppError("Label not found", HTTP_STATUS.NOT_FOUND);
+    }
+    await boardService.assertBoardAccess(label.boardId, userId, "MEMBER");
+    const updated = await labelRepository.update(labelId, {
+      ...(input.name !== undefined ? { name: input.name } : {}),
+      ...(input.color !== undefined ? { color: input.color } : {}),
+    });
+    return toLabelResponse(updated);
   }
 
   async assignLabelToCard(cardId: string, input: AssignLabelInput, userId: string) {
@@ -33,11 +46,11 @@ export class LabelService {
 
     await activityService.log({
       type: "LABEL_ADDED",
-      message: `Label "${label.name}" was added to "${card.title}"`,
+      message: `added the "${label.name}" label to this card`,
       boardId: card.list.boardId,
       cardId,
       userId,
-      metadata: { labelId: input.labelId },
+      metadata: { labelId: input.labelId, labelName: label.name, labelColor: label.color },
     });
 
     return assignment;
@@ -58,11 +71,11 @@ export class LabelService {
 
     await activityService.log({
       type: "LABEL_REMOVED",
-      message: `Label "${label?.name ?? "Label"}" was removed from "${card.title}"`,
+      message: `removed the "${label?.name ?? "label"}" label from this card`,
       boardId: card.list.boardId,
       cardId,
       userId,
-      metadata: { labelId },
+      metadata: { labelId, labelName: label?.name ?? null },
     });
   }
 }

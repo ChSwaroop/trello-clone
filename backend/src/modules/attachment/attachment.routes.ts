@@ -13,6 +13,11 @@ attachmentRoutes.post(
   validateRequest({ body: signUploadSchema }),
   attachmentController.signUpload,
 );
+attachmentRoutes.get(
+  "/:attachmentId/download",
+  validateRequest({ params: attachmentIdParamSchema }),
+  attachmentController.downloadAttachment,
+);
 attachmentRoutes.delete(
   "/:attachmentId",
   validateRequest({ params: attachmentIdParamSchema }),

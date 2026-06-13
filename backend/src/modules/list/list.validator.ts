@@ -25,6 +25,17 @@ export const reorderListsSchema = z.object({
     .min(1),
 });
 
+export const copyListSchema = z.object({
+  title: z.string().min(1).max(255),
+});
+
+export const moveListSchema = z.object({
+  destinationBoardId: z.uuid(),
+  position: z.number().int().min(0),
+});
+
 export type CreateListInput = z.infer<typeof createListSchema>;
 export type UpdateListInput = z.infer<typeof updateListSchema>;
 export type ReorderListsInput = z.infer<typeof reorderListsSchema>;
+export type CopyListInput = z.infer<typeof copyListSchema>;
+export type MoveListInput = z.infer<typeof moveListSchema>;

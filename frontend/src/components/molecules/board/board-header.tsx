@@ -1,7 +1,6 @@
 import {
   ChevronDown,
   ListFilter,
-  MoreHorizontal,
   Share2,
   Star,
   X,
@@ -9,6 +8,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import MemberAvatar from "@/components/molecules/member-avatar";
+import BoardActionsPopover from "@/components/molecules/board/board-actions-popover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -304,9 +304,7 @@ export default function BoardHeader({ boardId }: BoardHeaderProps) {
         </Button>
 
         {/* More */}
-        <Button variant="board" size="icon">
-          <MoreHorizontal className="size-4" />
-        </Button>
+        <BoardActionsPopover boardId={boardId} lists={data.lists} />
       </div>
     </header>
   );

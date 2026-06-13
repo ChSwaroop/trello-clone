@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { validateRequest } from "../../middleware/validate-request.js";
+import { uploadAttachmentMiddleware } from "../../middleware/upload-attachment.js";
 import { attachmentController } from "../attachment/attachment.controller.js";
 import {
   cardIdParamSchema as attachmentCardParamSchema,
@@ -25,6 +26,7 @@ import {
   searchCardsQuerySchema,
   updateCardSchema,
 } from "./card.validator.js";
+import { getActivitiesQuerySchema } from "../activity/activity.validator.js";
 
 const cardRoutes = Router();
 
@@ -37,6 +39,16 @@ cardRoutes.get(
   "/filter",
   validateRequest({ query: filterCardsQuerySchema }),
   cardController.filterCards,
+);
+cardRoutes.get(
+  "/:cardId/activities",
+  validateRequest({ params: cardParamSchema, query: getActivitiesQuerySchema }),
+  cardController.getCardActivities,
+);
+cardRoutes.get(
+  "/:cardId",
+  validateRequest({ params: cardParamSchema }),
+  cardController.getCard,
 );
 cardRoutes.post("/", validateRequest({ body: createCardSchema }), cardController.createCard);
 cardRoutes.patch("/move", validateRequest({ body: moveCardSchema }), cardController.moveCard);
@@ -75,10 +87,21 @@ cardRoutes.post(
   validateRequest({ params: attachmentCardParamSchema, body: createAttachmentSchema }),
   attachmentController.createAttachment,
 );
+cardRoutes.post(
+  "/:cardId/attachments/upload",
+  validateRequest({ params: attachmentCardParamSchema }),
+  uploadAttachmentMiddleware,
+  attachmentController.uploadFileAttachment,
+);
 cardRoutes.patch(
   "/:cardId/archive",
   validateRequest({ params: cardParamSchema }),
   cardController.archiveCard,
+);
+cardRoutes.patch(
+  "/:cardId/restore",
+  validateRequest({ params: cardParamSchema }),
+  cardController.restoreCard,
 );
 cardRoutes.patch(
   "/:cardId",

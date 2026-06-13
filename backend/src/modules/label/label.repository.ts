@@ -11,6 +11,10 @@ export class LabelRepository {
     return prisma.label.findUnique({ where: { id: labelId } });
   }
 
+  async update(labelId: string, data: { name?: string; color?: string }) {
+    return prisma.label.update({ where: { id: labelId }, data });
+  }
+
   async assignToCard(cardId: string, labelId: string) {
     return prisma.cardLabel.create({
       data: { cardId, labelId },

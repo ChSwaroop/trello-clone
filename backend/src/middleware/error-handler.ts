@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
+import multer from "multer";
 import { ZodError } from "zod";
 import { Prisma } from "../generated/prisma/client.js";
 import { HTTP_STATUS } from "../shared/constants/http-status.js";
@@ -18,6 +19,15 @@ export const errorHandler = (
 
   if (error instanceof ZodError) {
     const message = error.issues.map((issue) => issue.message).join(", ");
+    sendError(res, message, HTTP_STATUS.BAD_REQUEST);
+    return;
+  }
+
+  if (error instanceof multer.MulterError) {
+    const message =
+      error.code === "LIMIT_FILE_SIZE"
+        ? "File is too large (max 10 MB)"
+        : error.message;
     sendError(res, message, HTTP_STATUS.BAD_REQUEST);
     return;
   }

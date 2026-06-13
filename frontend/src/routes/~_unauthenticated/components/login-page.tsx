@@ -34,7 +34,7 @@ export default function LoginPage() {
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: "swaroopch1234@gmail.com",
+      email: "demo@example.com",
       password: "password123",
     },
   });
@@ -62,7 +62,7 @@ export default function LoginPage() {
               id="email"
               type="email"
               autoComplete="email"
-              placeholder="swaroopch1234@gmail.com"
+              placeholder="demo@example.com"
               className="rounded-sm"
               {...register("email")}
             />
